@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OpenContinuity</string>
+    <string name="notification_channel_connection">Connection Service</string>
+    <string name="notification_channel_transfer">File Transfer</string>
+    <string name="notification_title_connected">Connected to PC</string>
+    <string name="notification_title_disconnected">Not Connected</string>
+    <string name="notification_content_running">OpenContinuity is running</string>
+    <string name="pairing_title">Device Pairing</string>
+    <string name="pairing_scan_qr">Scan QR Code on your PC</string>
+    <string name="pairing_success">Device paired successfully!</string>
+    <string name="pairing_failed">Pairing failed. Please try again.</string>
+    <string name="dashboard_title">Dashboard</string>
+    <string name="feature_clipboard">Clipboard Sync</string>
+    <string name="feature_file_transfer">File Transfer</string>
+    <string name="feature_notifications">Notifications</string>
+    <string name="feature_sms">SMS</string>
+    <string name="feature_camera">Camera Webcam</string>
+    <string name="feature_screen_mirror">Screen Mirroring</string>
+    <string name="feature_battery">Battery Monitor</string>
+    <string name="feature_touchpad">Touchpad</string>
+    <string name="settings_title">Settings</string>
+    <string name="permission_required">Permission Required</string>
+    <string name="grant_permission">Grant Permission</string>
+</resources>

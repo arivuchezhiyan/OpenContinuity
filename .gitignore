@@ -1,0 +1,28 @@
+# Common
+node_modules/
+.DS_Store
+*.log
+*.zip
+*.apk
+
+# Android
+.gradle/
+local.properties
+*.iml
+.idea/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/captures/
+android/*.iml
+
+# Windows (Electron/React)
+windows/node_modules/
+windows/dist/
+windows/out/
+windows/build/
+windows/.env
+windows/.vscode/
+
+# Shared
+shared/node_modules/
