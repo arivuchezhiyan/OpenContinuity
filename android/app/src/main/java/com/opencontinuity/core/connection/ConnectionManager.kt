@@ -63,6 +63,9 @@ class ConnectionManager(
     // Coroutine scope for server operations
     private val serverScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    // Active pairing code for validation
+    private var activePairingCode: String? = null
+
     /**
      * Start the WebSocket server
      */
@@ -288,8 +291,8 @@ class ConnectionManager(
         val pairingRequest = protocolJson.decodeFromJsonElement<PairingRequestPayload>(message.payload)
         Log.i(TAG, "Pairing request from: ${pairingRequest.deviceName}")
 
-        // TODO: Validate pairing code against active pairing session
-        val success = true // Placeholder
+        // Validate pairing code against active pairing session
+        val success = (activePairingCode != null && activePairingCode == pairingRequest.pairingCode)
 
         val response = PairingResponsePayload(
             success = success,
@@ -389,6 +392,23 @@ class ConnectionManager(
         } catch (_: Exception) {
             false
         }
+    }
+
+    /**
+     * Set the active pairing code for validation when devices attempt to pair.
+     * This should be called when the pairing UI generates a code.
+     */
+    fun setActivePairingCode(code: String) {
+        activePairingCode = code
+        Log.i(TAG, "Active pairing code set")
+    }
+
+    /**
+     * Clear the active pairing code (called after successful pairing or session timeout)
+     */
+    fun clearActivePairingCode() {
+        activePairingCode = null
+        Log.i(TAG, "Active pairing code cleared")
     }
 
     fun stopServer() {

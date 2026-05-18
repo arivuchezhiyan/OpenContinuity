@@ -6,6 +6,7 @@ import Pairing from './pages/Pairing';
 import FileTransfer from './pages/FileTransfer';
 import SMS from './pages/SMS';
 import Notifications from './pages/Notifications';
+import NoteMaker from './pages/NoteMaker';
 import ScreenMirror from './pages/ScreenMirror';
 import Settings from './pages/Settings';
 import { ConnectionProvider } from './contexts/ConnectionContext';
@@ -24,6 +25,7 @@ function App() {
               <Route path="files" element={<FileTransfer />} />
               <Route path="sms" element={<SMS />} />
               <Route path="notifications" element={<Notifications />} />
+              <Route path="notes" element={<NoteMaker />} />
               <Route path="screen-mirror" element={<ScreenMirror />} />
               <Route path="settings" element={<Settings />} />
             </Route>

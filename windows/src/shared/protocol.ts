@@ -71,6 +71,9 @@ export enum MessageType {
   SCREENSHOT_AVAILABLE = 'screenshot_available',
   SCREENSHOT_REQUEST = 'screenshot_request',
 
+  // Note Maker Sync
+  NOTE_SYNC = 'note_sync',
+
   // Error
   ERROR = 'error'
 }
@@ -309,6 +312,27 @@ export interface StreamStartPayload {
 
 export interface StreamStopPayload {
   streamType: 'screen' | 'camera';
+}
+
+// ============== Note Maker Sync ==============
+
+export type NoteTool = 'pen' | 'eraser' | 'cursor';
+export type NoteSyncAction = 'stroke' | 'clear' | 'pan' | 'zoom';
+
+export interface NotePoint {
+  x: number;
+  y: number;
+}
+
+export interface NoteSyncPayload {
+  action: NoteSyncAction;
+  tool: NoteTool;
+  color: string;
+  thickness: number;
+  points: NotePoint[];
+  panX?: number;
+  panY?: number;
+  zoom?: number;
 }
 
 // ============== Error Messages ==============

@@ -121,6 +121,10 @@ export interface WindowAPI {
     stopScreen: () => Promise<void>;
   };
 
+  note: {
+    sendSync: (payload: any) => Promise<void>;
+  };
+
   window: {
     minimize: () => void;
     maximize: () => void;
@@ -138,6 +142,7 @@ export interface WindowAPI {
   onSmsReceived?: (callback: (sms: any) => void) => () => void;
   onStreamFrame?: (callback: (frame: any) => void) => () => void;
   onClipboardSync?: (callback: (content: any) => void) => () => void;
+  onNoteSync?: (callback: (payload: any) => void) => () => void;
 }
 
 declare global {

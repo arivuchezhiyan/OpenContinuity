@@ -23,12 +23,27 @@ export interface KeyboardEvent {
 
 export class InputControlManager extends EventEmitter {
   private isEnabled: boolean = true;
+  private pendingDeltaX = 0;
+  private pendingDeltaY = 0;
+  private isDragging = false;
+  private batchInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     super();
     // Set mouse movement speed — zero delay for fastest possible response
     robot.setMouseDelay(0);
     robot.setKeyboardDelay(0);
+
+    // Process batched mouse movements at ~60 FPS to prevent trackpad lag
+    this.batchInterval = setInterval(() => this.applyBatchedMouseMove(), 16);
+  }
+
+  destroy(): void {
+    if (this.batchInterval) {
+      clearInterval(this.batchInterval);
+      this.batchInterval = null;
+    }
+    this.removeAllListeners();
   }
 
   setEnabled(enabled: boolean): void {
@@ -50,7 +65,8 @@ export class InputControlManager extends EventEmitter {
     if (delta === 0) return 0;
     const abs = Math.abs(delta);
     const sign = delta < 0 ? -1 : 1;
-    return sign * abs * (2.0 + abs * 0.28);
+    // Adjusted slightly lower since batched deltas are larger per frame
+    return sign * abs * (1.5 + abs * 0.15);
   }
 
   handleMouseEvent(event: MouseEvent): void {
@@ -99,16 +115,40 @@ export class InputControlManager extends EventEmitter {
     }
   }
 
-  private handleMouseMove(event: MouseEvent): void {
-    if (event.deltaX !== undefined && event.deltaY !== undefined) {
-      // Relative movement with pointer acceleration
+  private applyBatchedMouseMove(): void {
+    if (!this.isEnabled || (this.pendingDeltaX === 0 && this.pendingDeltaY === 0)) return;
+
+    try {
+      const dx = this.pendingDeltaX;
+      const dy = this.pendingDeltaY;
+      
+      this.pendingDeltaX = 0;
+      this.pendingDeltaY = 0;
+
       const currentPos = robot.getMousePos();
       const screenSize = robot.getScreenSize();
-      const newX = Math.max(0, Math.min(screenSize.width - 1,  Math.round(currentPos.x + this.accelerate(event.deltaX))));
-      const newY = Math.max(0, Math.min(screenSize.height - 1, Math.round(currentPos.y + this.accelerate(event.deltaY))));
-      robot.moveMouse(newX, newY);
+      const newX = Math.max(0, Math.min(screenSize.width - 1,  Math.round(currentPos.x + this.accelerate(dx))));
+      const newY = Math.max(0, Math.min(screenSize.height - 1, Math.round(currentPos.y + this.accelerate(dy))));
+
+      if (this.isDragging) {
+        robot.mouseToggle('down', 'left');
+        robot.moveMouse(newX, newY);
+        robot.mouseToggle('up', 'left');
+      } else {
+        robot.moveMouse(newX, newY);
+      }
+    } catch (error) {
+      console.error('Error applying batched move:', error);
+    }
+  }
+
+  private handleMouseMove(event: MouseEvent): void {
+    if (event.deltaX !== undefined && event.deltaY !== undefined) {
+      this.pendingDeltaX += event.deltaX;
+      this.pendingDeltaY += event.deltaY;
+      this.isDragging = false;
     } else if (event.x !== undefined && event.y !== undefined) {
-      // Absolute movement
+      // Absolute movement immediately applied
       robot.moveMouse(event.x, event.y);
     }
   }
@@ -116,6 +156,9 @@ export class InputControlManager extends EventEmitter {
   private handleMouseClick(event: MouseEvent): void {
     const button = event.button || 'left';
     const clicks = event.clicks || 1;
+
+    // Flush any pending movement before clicking
+    this.applyBatchedMouseMove();
 
     // Move to position first if specified
     if (event.x !== undefined && event.y !== undefined) {
@@ -143,14 +186,9 @@ export class InputControlManager extends EventEmitter {
 
   private handleMouseDrag(event: MouseEvent): void {
     if (event.deltaX !== undefined && event.deltaY !== undefined) {
-      // Hold down mouse button and move with pointer acceleration
-      robot.mouseToggle('down', 'left');
-      const currentPos = robot.getMousePos();
-      robot.moveMouse(
-        Math.round(currentPos.x + this.accelerate(event.deltaX)),
-        Math.round(currentPos.y + this.accelerate(event.deltaY))
-      );
-      robot.mouseToggle('up', 'left');
+      this.pendingDeltaX += event.deltaX;
+      this.pendingDeltaY += event.deltaY;
+      this.isDragging = true;
     }
   }
 

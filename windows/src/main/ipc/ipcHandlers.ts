@@ -401,16 +401,34 @@ export function setupIPC(managers: Managers): void {
   });
 
   ipcMain.handle('window:maximize', async () => {
-    const win = BrowserWindow.getFocusedWindow();
-    if (win?.isMaximized()) {
-      win.unmaximize();
-    } else {
-      win?.maximize();
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      if (!win.isVisible()) win.show();
+      win.focus();
     }
   });
 
   ipcMain.handle('window:close', async () => {
     BrowserWindow.getFocusedWindow()?.close();
+  });
+
+  // ==================== Note Maker ====================
+
+  ipcMain.handle('note:sendSync', async (_event, payload: any) => {
+    connectionManager.send({
+      type: MessageType.NOTE_SYNC,
+      payload: payload,
+      timestamp: Date.now(),
+      messageId: generateMessageId()
+    });
+  });
+
+  // Forward note sync events to renderer
+  connectionManager.on(`message:${MessageType.NOTE_SYNC}`, (message) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('note:sync', message.payload);
+    });
   });
 }
 

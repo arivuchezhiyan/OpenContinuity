@@ -86,6 +86,11 @@ contextBridge.exposeInMainWorld('api', {
     close: () => ipcRenderer.invoke('window:close'),
   },
 
+  // ==================== Note Maker ====================
+  note: {
+    sendSync: (payload: any) => ipcRenderer.invoke('note:sendSync', payload),
+  },
+
   // ==================== Event Listeners ====================
   onConnectionStateChanged: (callback: (state: any) => void) => {
     const listener = (_event: any, state: any) => callback(state);
@@ -145,5 +150,11 @@ contextBridge.exposeInMainWorld('api', {
     const listener = (_event: any, content: any) => callback(content);
     ipcRenderer.on('clipboard:sync', listener);
     return () => ipcRenderer.removeListener('clipboard:sync', listener);
+  },
+
+  onNoteSync: (callback: (payload: any) => void) => {
+    const listener = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on('note:sync', listener);
+    return () => ipcRenderer.removeListener('note:sync', listener);
   },
 });

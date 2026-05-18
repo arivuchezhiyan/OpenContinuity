@@ -22,6 +22,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Camera : Screen("camera", "Camera", Icons.Default.CameraAlt)
     object ScreenMirror : Screen("screen_mirror", "Mirror", Icons.Default.ScreenShare)
     object Sms : Screen("sms", "SMS", Icons.Default.Sms)
+    object NoteTaker : Screen("note_taker", "Notes", Icons.Default.Edit)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
 }
 
@@ -35,6 +36,7 @@ fun OpenContinuityNavigation() {
         Screen.Pairing,
         Screen.FileTransfer,
         Screen.Touchpad,
+        Screen.NoteTaker,
         Screen.Settings
     )
 
@@ -74,6 +76,7 @@ fun OpenContinuityNavigation() {
             composable(Screen.Camera.route) { CameraScreen(navController) }
             composable(Screen.ScreenMirror.route) { ScreenMirrorScreen(navController) }
             composable(Screen.Sms.route) { SmsScreen(navController) }
+            composable(Screen.NoteTaker.route) { NoteTakerScreen(navController) }
             composable(Screen.Settings.route) { SettingsScreen(navController) }
         }
     }

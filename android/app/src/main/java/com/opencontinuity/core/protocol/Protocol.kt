@@ -102,6 +102,9 @@ enum class MessageType {
     @SerialName("screenshot_available") SCREENSHOT_AVAILABLE,
     @SerialName("screenshot_request") SCREENSHOT_REQUEST,
 
+    // Note Maker Sync
+    @SerialName("note_sync") NOTE_SYNC,
+
     // Error
     @SerialName("error") ERROR
 }
@@ -378,6 +381,41 @@ enum class TouchpadEventType {
     @SerialName("drag_start") DRAG_START,
     @SerialName("drag_end") DRAG_END
 }
+
+// ============== Note Maker Sync ==============
+
+@Serializable
+enum class NoteTool {
+    @SerialName("pen") PEN,
+    @SerialName("eraser") ERASER,
+    @SerialName("cursor") CURSOR
+}
+
+@Serializable
+enum class NoteSyncAction {
+    @SerialName("stroke") STROKE,
+    @SerialName("clear") CLEAR,
+    @SerialName("pan") PAN,
+    @SerialName("zoom") ZOOM
+}
+
+@Serializable
+data class NotePoint(
+    val x: Float,
+    val y: Float
+)
+
+@Serializable
+data class NoteSyncPayload(
+    val action: NoteSyncAction,
+    val tool: NoteTool,
+    val color: String,
+    val thickness: Float,
+    val points: List<NotePoint> = emptyList(),
+    val panX: Float? = null,
+    val panY: Float? = null,
+    val zoom: Float? = null
+)
 
 // ============== Error Messages ==============
 

@@ -129,6 +129,26 @@ fun DashboardScreen(navController: NavController) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    
+                    if (connectionState is ConnectionState.Disconnected || connectionState is ConnectionState.Error) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        Button(
+                            onClick = { 
+                                val intent = android.content.Intent(context, com.opencontinuity.services.ConnectionService::class.java).apply {
+                                    action = com.opencontinuity.services.ConnectionService.ACTION_START
+                                }
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                    androidx.core.content.ContextCompat.startForegroundService(context, intent)
+                                } else {
+                                    context.startService(intent)
+                                }
+                            },
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Text("Start Service")
+                        }
+                    }
                 }
             }
         }

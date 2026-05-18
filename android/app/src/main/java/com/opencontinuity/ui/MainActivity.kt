@@ -38,9 +38,11 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val allGranted = permissions.values.all { it }
-        if (allGranted) {
-            startConnectionService()
+        if (!allGranted) {
+            Log.w("MainActivity", "Not all permissions granted: $permissions")
         }
+        // Always attempt to start the service so the basic connection can run
+        startConnectionService()
     }
 
     override fun onResume() {

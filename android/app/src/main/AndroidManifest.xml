@@ -115,7 +115,6 @@
             android:name=".services.ConnectionService"
             android:enabled="true"
             android:exported="false"
-            android:process=":connection"
             android:stopWithTask="false"
             android:foregroundServiceType="connectedDevice|dataSync" />
 
