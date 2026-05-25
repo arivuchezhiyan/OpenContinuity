@@ -5,6 +5,11 @@
  * Keep in sync with /shared/protocol.ts (root)
  */
 
+/** Default WebSocket port (Android hosts the server). */
+export const DEFAULT_WS_PORT = 8765;
+/** Default HTTP port for file transfer helpers. */
+export const DEFAULT_HTTP_PORT = 8766;
+
 export enum MessageType {
   // Connection & Pairing
   HANDSHAKE = 'handshake',
@@ -71,6 +76,13 @@ export enum MessageType {
   SCREENSHOT_AVAILABLE = 'screenshot_available',
   SCREENSHOT_REQUEST = 'screenshot_request',
 
+  // Note Maker Sync
+  NOTE_SYNC = 'note_sync',
+
+  // PC wake / proximity unlock (preview)
+  UNLOCK_REQUEST = 'unlock_request',
+  UNLOCK_ACK = 'unlock_ack',
+
   // Error
   ERROR = 'error'
 }
@@ -119,7 +131,37 @@ export interface HandshakeResponsePayload {
   protocolVersion: string;
   publicKey: string;
   sessionToken?: string;
+  deviceId?: string;
   features: string[];
+}
+
+export interface ScreenshotAvailablePayload {
+  screenshotId: string;
+  fileName: string;
+  timestamp: number;
+  imageBase64?: string;
+}
+
+export interface ScreenshotRequestPayload {
+  screenshotId: string;
+  imageBase64?: string;
+  fileName?: string;
+}
+
+export interface SessionRestoreAckPayload {
+  restored: boolean;
+  sessionToken?: string;
+  errorMessage?: string;
+}
+
+export interface UnlockRequestPayload {
+  deviceName: string;
+  reason?: string;
+}
+
+export interface UnlockAckPayload {
+  accepted: boolean;
+  message?: string;
 }
 
 export interface PairingRequestPayload {
@@ -309,6 +351,27 @@ export interface StreamStartPayload {
 
 export interface StreamStopPayload {
   streamType: 'screen' | 'camera';
+}
+
+// ============== Note Maker Sync ==============
+
+export type NoteTool = 'pen' | 'eraser' | 'cursor';
+export type NoteSyncAction = 'stroke' | 'clear' | 'pan' | 'zoom';
+
+export interface NotePoint {
+  x: number;
+  y: number;
+}
+
+export interface NoteSyncPayload {
+  action: NoteSyncAction;
+  tool: NoteTool;
+  color: string;
+  thickness: number;
+  points: NotePoint[];
+  panX?: number;
+  panY?: number;
+  zoom?: number;
 }
 
 // ============== Error Messages ==============

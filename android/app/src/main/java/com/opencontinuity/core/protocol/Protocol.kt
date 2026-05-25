@@ -102,6 +102,13 @@ enum class MessageType {
     @SerialName("screenshot_available") SCREENSHOT_AVAILABLE,
     @SerialName("screenshot_request") SCREENSHOT_REQUEST,
 
+    // Note Maker Sync
+    @SerialName("note_sync") NOTE_SYNC,
+
+    // PC wake / proximity unlock (preview)
+    @SerialName("unlock_request") UNLOCK_REQUEST,
+    @SerialName("unlock_ack") UNLOCK_ACK,
+
     // Error
     @SerialName("error") ERROR
 }
@@ -141,7 +148,30 @@ data class HandshakeResponsePayload(
     val protocolVersion: String = PROTOCOL_VERSION,
     val publicKey: String,
     val sessionToken: String? = null,
+    val deviceId: String? = null,
     val features: List<String> = emptyList()
+)
+
+@Serializable
+data class ScreenshotAvailablePayload(
+    val screenshotId: String,
+    val fileName: String,
+    val timestamp: Long,
+    val imageBase64: String? = null
+)
+
+@Serializable
+data class ScreenshotRequestPayload(
+    val screenshotId: String,
+    val imageBase64: String? = null,
+    val fileName: String? = null
+)
+
+@Serializable
+data class SessionRestoreAckPayload(
+    val restored: Boolean,
+    val sessionToken: String? = null,
+    val errorMessage: String? = null
 )
 
 @Serializable
@@ -378,6 +408,41 @@ enum class TouchpadEventType {
     @SerialName("drag_start") DRAG_START,
     @SerialName("drag_end") DRAG_END
 }
+
+// ============== Note Maker Sync ==============
+
+@Serializable
+enum class NoteTool {
+    @SerialName("pen") PEN,
+    @SerialName("eraser") ERASER,
+    @SerialName("cursor") CURSOR
+}
+
+@Serializable
+enum class NoteSyncAction {
+    @SerialName("stroke") STROKE,
+    @SerialName("clear") CLEAR,
+    @SerialName("pan") PAN,
+    @SerialName("zoom") ZOOM
+}
+
+@Serializable
+data class NotePoint(
+    val x: Float,
+    val y: Float
+)
+
+@Serializable
+data class NoteSyncPayload(
+    val action: NoteSyncAction,
+    val tool: NoteTool,
+    val color: String,
+    val thickness: Float,
+    val points: List<NotePoint> = emptyList(),
+    val panX: Float? = null,
+    val panY: Float? = null,
+    val zoom: Float? = null
+)
 
 // ============== Error Messages ==============
 
