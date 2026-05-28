@@ -444,6 +444,20 @@ data class NoteSyncPayload(
     val zoom: Float? = null
 )
 
+// ============== PC Wake / Unlock Preview ==============
+
+@Serializable
+data class UnlockRequestPayload(
+    val deviceName: String,
+    val reason: String? = null
+)
+
+@Serializable
+data class UnlockAckPayload(
+    val accepted: Boolean,
+    val message: String? = null
+)
+
 // ============== Error Messages ==============
 
 @Serializable

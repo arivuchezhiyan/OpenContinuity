@@ -83,8 +83,8 @@ OpenContinuity/
 
 ## Architecture
 
-- **Transport**: WebSocket (real-time) + HTTP (file transfers)
-- **Discovery**: mDNS/DNS-SD for automatic device discovery
+- **Transport**: WebSocket on port **8765** (real-time) + HTTP on **8766** (file transfers)
+- **Discovery**: mDNS/DNS-SD + UDP beacon for automatic device discovery
 - **Protocol**: JSON-based message format with typed payloads
 
 ## License

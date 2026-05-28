@@ -16,6 +16,7 @@ import {
 
 interface SettingsState {
   autoStart: boolean;
+  proximityUnlock: boolean;
   minimizeToTray: boolean;
   clipboardSync: boolean;
   notificationSync: boolean;
@@ -28,6 +29,7 @@ function Settings() {
   const { theme, setTheme, isDark } = useTheme();
   const [settings, setSettings] = useState<SettingsState>({
     autoStart: false,
+    proximityUnlock: false,
     minimizeToTray: true,
     clipboardSync: true,
     notificationSync: true,
@@ -139,6 +141,12 @@ function Settings() {
             description="Keep running in the background when you close the window"
             checked={settings.minimizeToTray}
             onChange={(checked) => updateSetting('minimizeToTray', checked)}
+          />
+          <ToggleSetting
+            label="Wake PC when phone requests"
+            description="Turns on the PC display when your phone sends a wake signal (does not bypass lock PIN)"
+            checked={settings.proximityUnlock}
+            onChange={(checked) => updateSetting('proximityUnlock', checked)}
           />
         </div>
       </div>

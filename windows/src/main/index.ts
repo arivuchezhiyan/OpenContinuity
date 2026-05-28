@@ -14,7 +14,12 @@ import { WebcamManager } from '../features/webcam/WebcamManager';
 import { ScreenMirrorManager } from '../features/screenmirror/ScreenMirrorManager';
 import { ScreenshotSyncManager } from '../features/screenmirror/ScreenshotSyncManager';
 import { TrayManager } from './tray/TrayManager';
+import { SessionManager } from './session/SessionManager';
+import { DragDropManager } from '../features/dragdrop/DragDropManager';
+import { ProximityUnlockManager } from '../features/unlock/ProximityUnlockManager';
+import { ActivityLogManager } from './activity/ActivityLogManager';
 import { setupIPC } from './ipc/ipcHandlers';
+import os from 'os';
 
 // Keep a global reference to prevent garbage collection
 let mainWindow: BrowserWindow | null = null;
@@ -34,6 +39,10 @@ let touchpadManager: TouchpadManager;
 let webcamManager: WebcamManager;
 let screenMirrorManager: ScreenMirrorManager;
 let screenshotSyncManager: ScreenshotSyncManager;
+let sessionManager: SessionManager;
+let dragDropManager: DragDropManager;
+let activityLogManager: ActivityLogManager;
+let proximityUnlockManager: ProximityUnlockManager;
 let trayManager: TrayManager;
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -92,6 +101,55 @@ async function initializeManagers() {
   connectionManager = new ConnectionManager(securityManager);
   discoveryManager = new DiscoveryManager();
 
+  sessionManager = new SessionManager();
+  sessionManager.start();
+
+  connectionManager.setHeartbeatAckHandler(() => {
+    const active = sessionManager.getAllSessions()[0];
+    if (active) sessionManager.touchHeartbeat(active.deviceId);
+  });
+
+  connectionManager.setHandshakeCompleteHandler((payload) => {
+    const deviceId = payload.deviceId || payload.deviceName;
+    const paired = securityManager.getPairedDevices().find((d) => d.deviceId === deviceId);
+
+    if (paired) {
+      sessionManager.restoreSession(deviceId, payload.deviceName);
+      connectionManager.trySessionRestore({
+        sessionToken: paired.sessionToken,
+        deviceId: securityManager.getDeviceId(),
+        deviceName: os.hostname()
+      });
+    } else {
+      sessionManager.createSession(deviceId, payload.deviceName, payload.features || []);
+    }
+
+    if (payload.sessionToken) {
+      securityManager.addPairedDevice({
+        deviceId,
+        deviceName: payload.deviceName,
+        publicKey: payload.publicKey,
+        sessionToken: payload.sessionToken,
+        pairedAt: Date.now(),
+        lastConnected: Date.now()
+      });
+    } else {
+      securityManager.updateLastConnected(deviceId);
+    }
+  });
+
+  sessionManager.on('sessionExpired', (session) => {
+    console.warn(`Session expired for ${session.deviceName} — reconnecting`);
+    const state = connectionManager.getState();
+    if (state.host && state.port && !connectionManager.isConnected()) {
+      connectionManager.connect(state.host, state.port);
+    }
+  });
+
+  dragDropManager = new DragDropManager(connectionManager, securityManager.getDeviceId());
+  activityLogManager = new ActivityLogManager();
+  proximityUnlockManager = new ProximityUnlockManager(connectionManager);
+
   clipboardManager = new ClipboardManager(connectionManager);
   clipboardManager.start();
 
@@ -120,6 +178,9 @@ async function initializeManagers() {
     webcamManager,
     screenMirrorManager,
     screenshotSyncManager,
+    dragDropManager,
+    activityLogManager,
+    proximityUnlockManager,
   });
 
   discoveryManager.startDiscovery();
@@ -176,4 +237,5 @@ app.on('before-quit', () => {
   webcamManager?.destroy();
   screenMirrorManager?.destroy();
   screenshotSyncManager?.destroy();
+  sessionManager?.stop();
 });

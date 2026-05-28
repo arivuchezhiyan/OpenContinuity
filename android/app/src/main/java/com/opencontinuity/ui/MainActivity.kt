@@ -38,9 +38,11 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val allGranted = permissions.values.all { it }
-        if (allGranted) {
-            startConnectionService()
+        if (!allGranted) {
+            Log.w("MainActivity", "Not all permissions granted: $permissions")
         }
+        // Always attempt to start the service so the basic connection can run
+        startConnectionService()
     }
 
     override fun onResume() {
@@ -87,7 +89,6 @@ class MainActivity : ComponentActivity() {
 
         handleIntent(intent)
         requestPermissions()
-        requestBatteryOptimizationExemption()
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -146,22 +147,6 @@ class MainActivity : ComponentActivity() {
             app.applicationScope.launch {
                 uris.forEach { uri ->
                     app.fileTransferManager.sendFile(uri)
-                }
-            }
-        }
-    }
-
-    private fun requestBatteryOptimizationExemption() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val pm = getSystemService(POWER_SERVICE) as PowerManager
-            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-                try {
-                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                        data = Uri.parse("package:$packageName")
-                    }
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    // Some devices don't support this — silently ignore
                 }
             }
         }

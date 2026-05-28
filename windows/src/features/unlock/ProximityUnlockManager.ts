@@ -6,7 +6,7 @@
 import { EventEmitter } from 'events';
 import { exec } from 'child_process';
 import { ConnectionManager } from '../../main/connection/ConnectionManager';
-import { MessageType, ProtocolMessage } from '../../shared/protocol';
+import { MessageType, ProtocolMessage, generateMessageId, UnlockAckPayload } from '../../shared/protocol';
 
 export class ProximityUnlockManager extends EventEmitter {
   private connectionManager: ConnectionManager;
@@ -32,6 +32,15 @@ export class ProximityUnlockManager extends EventEmitter {
   private handleUnlockRequest(message: ProtocolMessage): void {
     const payload = message.payload as { deviceName?: string; reason?: string };
     this.wakeDisplay();
+    this.connectionManager.send({
+      type: MessageType.UNLOCK_ACK,
+      payload: {
+        accepted: true,
+        message: 'Display wake requested (lock screen PIN still required to unlock)',
+      } as UnlockAckPayload,
+      timestamp: Date.now(),
+      messageId: generateMessageId(),
+    });
     this.emit('unlockRequested', payload);
     console.log('[ProximityUnlock] Wake display requested from phone');
   }

@@ -14,11 +14,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.opencontinuity.OpenContinuityApp
+import com.opencontinuity.core.connection.ConnectionState
+import com.opencontinuity.features.unlock.UnlockHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
+    val connectionState by OpenContinuityApp.instance.connectionManager.connectionState.collectAsState()
 
     var autoStartEnabled by remember { mutableStateOf(true) }
     var clipboardSyncEnabled by remember { mutableStateOf(true) }
@@ -88,6 +92,18 @@ fun SettingsScreen(navController: NavController) {
                     checked = screenshotSyncEnabled,
                     onCheckedChange = { screenshotSyncEnabled = it }
                 )
+            }
+
+            // PC wake (preview)
+            if (connectionState is ConnectionState.Connected) {
+                SettingsSection(title = "Windows PC") {
+                    ClickableSettingItem(
+                        title = "Wake PC display",
+                        subtitle = "Sends a signal to turn on your PC screen (lock PIN still required)",
+                        icon = Icons.Default.Computer,
+                        onClick = { UnlockHelper.requestPcWake("settings") }
+                    )
+                }
             }
 
             // Permissions

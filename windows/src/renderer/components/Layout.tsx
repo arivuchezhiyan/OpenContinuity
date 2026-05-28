@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useConnection } from '../contexts/ConnectionContext';
 import {
   HomeIcon,
@@ -13,7 +13,8 @@ import {
   Battery100Icon,
   MinusIcon,
   Square2StackIcon,
-  XMarkIcon
+  XMarkIcon,
+  PencilSquareIcon
 } from '@heroicons/react/24/outline';
 
 const navItems = [
@@ -22,12 +23,23 @@ const navItems = [
   { path: '/files', label: 'Files', icon: FolderIcon },
   { path: '/sms', label: 'SMS', icon: ChatBubbleLeftIcon },
   { path: '/notifications', label: 'Notifications', icon: BellIcon },
+  { path: '/notes', label: 'Note Maker', icon: PencilSquareIcon },
   { path: '/screen-mirror', label: 'Screen Mirror', icon: TvIcon },
   { path: '/settings', label: 'Settings', icon: Cog6ToothIcon }
 ];
 
 function Layout() {
   const { connectionState, batteryStatus } = useConnection();
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const unlisten = window.api.onNoteSync?.(() => {
+      // Auto-navigate to Note Maker when a draw event occurs
+      navigate('/notes');
+      window.api.window.maximize();
+    });
+    return () => unlisten?.();
+  }, [navigate]);
 
   const handleMinimize = () => window.api.window.minimize();
   const handleMaximize = () => window.api.window.maximize();

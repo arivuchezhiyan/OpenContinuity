@@ -121,6 +121,14 @@ fun PairingScreen(navController: NavController) {
         qrBitmap = generateQRCode(qrData, 300)
     }
 
+    LaunchedEffect(pairingCode) {
+        try {
+            OpenContinuityApp.instance.connectionManager.setActivePairingCode(pairingCode)
+        } catch (e: Exception) {
+            Log.e("PairingScreen", "setActivePairingCode failed", e)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -301,42 +309,44 @@ fun PairingScreen(navController: NavController) {
 
 @Composable
 private fun ManualConnectionDialog(onDismiss: () -> Unit) {
-    var host by remember { mutableStateOf("") }
-    var port by remember { mutableStateOf("8765") }
+    val context = LocalContext.current
+    val localIp = remember {
+        try { OpenContinuityApp.instance.discoveryManager.getLocalIpAddress() }
+        catch (_: Exception) { null }
+    }
+    val port = ConnectionManager.DEFAULT_PORT.toString()
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Manual Connection") },
+        title = { Text("Connect from Windows") },
         text = {
             Column {
-                Text("Enter the Windows PC's IP address:")
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = host,
-                    onValueChange = { host = it },
-                    label = { Text("IP Address") },
-                    placeholder = { Text("e.g. 192.168.1.100") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                Text(
+                    "OpenContinuity on Windows connects to this phone. Enter these details in the Windows app (Pairing → Manual):",
+                    style = MaterialTheme.typography.bodyMedium
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("IP: ${localIp ?: "Unavailable"}", style = MaterialTheme.typography.bodyLarge)
+                Text("Port: $port", style = MaterialTheme.typography.bodyLarge)
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = port,
-                    onValueChange = { port = it },
-                    label = { Text("Port") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                Text(
+                    "Keep the connection notification visible and disable battery optimization for best results.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                // TODO: trigger connection with host/port
+                val intent = android.content.Intent(context, com.opencontinuity.services.ConnectionService::class.java).apply {
+                    action = com.opencontinuity.services.ConnectionService.ACTION_START
+                }
+                androidx.core.content.ContextCompat.startForegroundService(context, intent)
                 onDismiss()
-            }) { Text("Connect") }
+            }) { Text("Start service") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text("Close") }
         }
     )
 }

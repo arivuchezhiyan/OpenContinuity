@@ -121,6 +121,20 @@ export interface WindowAPI {
     stopScreen: () => Promise<void>;
   };
 
+  note: {
+    sendSync: (payload: any) => Promise<void>;
+  };
+
+  activity: {
+    get: () => Promise<any[]>;
+  };
+
+  dragdrop: {
+    startEdgeDrag: (filePath: string, edgeX: number, edgeY: number) => Promise<string>;
+    acceptIncoming: (dragId: string) => Promise<void>;
+    rejectIncoming: (dragId: string) => Promise<void>;
+  };
+
   window: {
     minimize: () => void;
     maximize: () => void;
@@ -138,6 +152,10 @@ export interface WindowAPI {
   onSmsReceived?: (callback: (sms: any) => void) => () => void;
   onStreamFrame?: (callback: (frame: any) => void) => () => void;
   onClipboardSync?: (callback: (content: any) => void) => () => void;
+  onNoteSync?: (callback: (payload: any) => void) => () => void;
+  onScreenshotSaved?: (callback: (info: { filePath: string; fileName: string }) => void) => () => void;
+  onActivityUpdated?: (callback: (entries: any[]) => void) => () => void;
+  onUnlockRequested?: (callback: (payload: any) => void) => () => void;
 }
 
 declare global {

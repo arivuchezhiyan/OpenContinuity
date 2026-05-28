@@ -2,7 +2,7 @@
  * IPC Handlers - handles communication between main and renderer processes
  */
 
-import { ipcMain, dialog, BrowserWindow, clipboard, shell } from 'electron';
+import { app, ipcMain, dialog, BrowserWindow, clipboard, shell } from 'electron';
 import { ConnectionManager } from '../connection/ConnectionManager';
 import { DiscoveryManager } from '../discovery/DiscoveryManager';
 import { SecurityManager } from '../security/SecurityManager';
@@ -15,7 +15,11 @@ import { ScreenMirrorManager } from '../../features/screenmirror/ScreenMirrorMan
 import { ScreenshotSyncManager } from '../../features/screenmirror/ScreenshotSyncManager';
 import { TouchpadManager } from '../../features/touchpad/TouchpadManager';
 import { FileTransferManager } from '../../features/filetransfer/FileTransferManager';
+import { DragDropManager } from '../../features/dragdrop/DragDropManager';
 import { InputControlManager } from '../../features/input/InputControlManager';
+import { ActivityLogManager } from '../activity/ActivityLogManager';
+import { ProximityUnlockManager } from '../../features/unlock/ProximityUnlockManager';
+import { DEFAULT_WS_PORT, DEFAULT_HTTP_PORT } from '../../shared/protocol';
 import { MessageType, generateMessageId } from '../../shared/protocol';
 import QRCode from 'qrcode';
 import os from 'os';
@@ -25,6 +29,7 @@ import fs from 'fs';
 
 interface AppSettings {
   autoStart: boolean;
+  proximityUnlock: boolean;
   clipboardSync: boolean;
   notificationSync: boolean;
   smsSync: boolean;
@@ -43,6 +48,21 @@ interface Managers {
   webcamManager: WebcamManager;
   screenMirrorManager: ScreenMirrorManager;
   screenshotSyncManager: ScreenshotSyncManager;
+  dragDropManager: DragDropManager;
+  activityLogManager: ActivityLogManager;
+  proximityUnlockManager: ProximityUnlockManager;
+}
+
+function applyAutoStart(enabled: boolean): void {
+  if (!app.isPackaged && process.env.NODE_ENV === 'development') {
+    console.log('[Settings] Skipping login item in development');
+    return;
+  }
+  app.setLoginItemSettings({
+    openAtLogin: enabled,
+    path: process.execPath,
+    args: [],
+  });
 }
 
 export function setupIPC(managers: Managers): void {
@@ -57,6 +77,9 @@ export function setupIPC(managers: Managers): void {
     webcamManager,
     screenMirrorManager,
     screenshotSyncManager,
+    dragDropManager,
+    activityLogManager,
+    proximityUnlockManager,
   } = managers;
 
   // Additional managers
@@ -66,6 +89,7 @@ export function setupIPC(managers: Managers): void {
   const settingsStore = new Store<AppSettings>({
     defaults: {
       autoStart: false,
+      proximityUnlock: false,
       clipboardSync: true,
       notificationSync: true,
       smsSync: true,
@@ -96,7 +120,24 @@ export function setupIPC(managers: Managers): void {
     BrowserWindow.getAllWindows().forEach(win => {
       win.webContents.send('connection:stateChanged', state);
     });
+    if (state.status === 'connected') {
+      activityLogManager.add('connected', state.deviceName);
+    } else if (state.status === 'disconnected') {
+      activityLogManager.add('disconnected');
+    }
   });
+
+  connectionManager.on('connected', () => {
+    activityLogManager.add('handshake_complete');
+  });
+
+  activityLogManager.onChange((entries) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('activity:updated', entries);
+    });
+  });
+
+  ipcMain.handle('activity:get', async () => activityLogManager.getRecent());
 
   // ==================== Discovery ====================
 
@@ -131,8 +172,8 @@ export function setupIPC(managers: Managers): void {
   ipcMain.handle('pairing:generateQR', async () => {
     const pairingData = {
       host: getLocalIP(),
-      port: 8765,
-      httpPort: 8766,
+      port: DEFAULT_WS_PORT,
+      httpPort: DEFAULT_HTTP_PORT,
       publicKey: securityManager.getPublicKeyBase64(),
       pairingCode: securityManager.generatePairingCode(),
       deviceName: os.hostname()
@@ -290,8 +331,9 @@ export function setupIPC(managers: Managers): void {
   // Forward notifications to renderer
   connectionManager.on(`message:${MessageType.NOTIFICATION_POST}`, (message) => {
     notificationManager.addNotification(message.payload);
+    activityLogManager.add('notification', message.payload?.title);
     BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send('notifications:received', message.payload);
+      win.webContents.send('notification:received', message.payload);
     });
   });
 
@@ -324,12 +366,21 @@ export function setupIPC(managers: Managers): void {
   // ==================== Settings ====================
 
   ipcMain.handle('settings:get', async () => {
-    return settingsStore.store;
+    const settings = settingsStore.store;
+    applyAutoStart(settings.autoStart);
+    proximityUnlockManager.setEnabled(settings.proximityUnlock);
+    return settings;
   });
 
   ipcMain.handle('settings:set', async (_event, settings: Partial<AppSettings>) => {
     for (const [key, value] of Object.entries(settings)) {
       settingsStore.set(key as keyof AppSettings, value as any);
+    }
+    if (settings.autoStart !== undefined) {
+      applyAutoStart(settings.autoStart);
+    }
+    if (settings.proximityUnlock !== undefined) {
+      proximityUnlockManager.setEnabled(settings.proximityUnlock);
     }
   });
 
@@ -389,9 +440,31 @@ export function setupIPC(managers: Managers): void {
 
   // Forward screenshot events to renderer
   screenshotSyncManager.on('screenshotSaved', (info: any) => {
+    activityLogManager.add('screenshot_saved', info?.fileName);
     BrowserWindow.getAllWindows().forEach(win => {
       win.webContents.send('screenshot:saved', info);
     });
+  });
+
+  proximityUnlockManager.on('unlockRequested', (payload: any) => {
+    activityLogManager.add('pc_wake', payload?.deviceName);
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('unlock:requested', payload);
+    });
+  });
+
+  // ==================== Drag & Drop ====================
+
+  ipcMain.handle('dragdrop:startEdgeDrag', async (_event, filePath: string, edgeX: number, edgeY: number) => {
+    return dragDropManager.startEdgeDrag(filePath, edgeX, edgeY);
+  });
+
+  ipcMain.handle('dragdrop:acceptIncoming', async (_event, dragId: string) => {
+    dragDropManager.acceptDrop(dragId);
+  });
+
+  ipcMain.handle('dragdrop:rejectIncoming', async (_event, dragId: string) => {
+    dragDropManager.rejectDrop(dragId);
   });
 
   // ==================== Window Control ====================
@@ -401,16 +474,34 @@ export function setupIPC(managers: Managers): void {
   });
 
   ipcMain.handle('window:maximize', async () => {
-    const win = BrowserWindow.getFocusedWindow();
-    if (win?.isMaximized()) {
-      win.unmaximize();
-    } else {
-      win?.maximize();
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      if (!win.isVisible()) win.show();
+      win.focus();
     }
   });
 
   ipcMain.handle('window:close', async () => {
     BrowserWindow.getFocusedWindow()?.close();
+  });
+
+  // ==================== Note Maker ====================
+
+  ipcMain.handle('note:sendSync', async (_event, payload: any) => {
+    connectionManager.send({
+      type: MessageType.NOTE_SYNC,
+      payload: payload,
+      timestamp: Date.now(),
+      messageId: generateMessageId()
+    });
+  });
+
+  // Forward note sync events to renderer
+  connectionManager.on(`message:${MessageType.NOTE_SYNC}`, (message) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('note:sync', message.payload);
+    });
   });
 }
 

@@ -33,8 +33,8 @@ export class SessionManager extends EventEmitter {
 
   /** Watchdog checks heartbeats every 5 s */
   private readonly HEARTBEAT_INTERVAL_MS = 5_000;
-  /** Session is considered dead if no heartbeat within 10 s */
-  private readonly HEARTBEAT_TIMEOUT_MS = 10_000;
+  /** Session is considered dead if no heartbeat within 30 s */
+  private readonly HEARTBEAT_TIMEOUT_MS = 30_000;
 
   private watchdog: NodeJS.Timeout | null = null;
 

@@ -86,6 +86,22 @@ contextBridge.exposeInMainWorld('api', {
     close: () => ipcRenderer.invoke('window:close'),
   },
 
+  // ==================== Note Maker ====================
+  note: {
+    sendSync: (payload: any) => ipcRenderer.invoke('note:sendSync', payload),
+  },
+
+  activity: {
+    get: () => ipcRenderer.invoke('activity:get'),
+  },
+
+  dragdrop: {
+    startEdgeDrag: (filePath: string, edgeX: number, edgeY: number) =>
+      ipcRenderer.invoke('dragdrop:startEdgeDrag', filePath, edgeX, edgeY),
+    acceptIncoming: (dragId: string) => ipcRenderer.invoke('dragdrop:acceptIncoming', dragId),
+    rejectIncoming: (dragId: string) => ipcRenderer.invoke('dragdrop:rejectIncoming', dragId),
+  },
+
   // ==================== Event Listeners ====================
   onConnectionStateChanged: (callback: (state: any) => void) => {
     const listener = (_event: any, state: any) => callback(state);
@@ -145,5 +161,29 @@ contextBridge.exposeInMainWorld('api', {
     const listener = (_event: any, content: any) => callback(content);
     ipcRenderer.on('clipboard:sync', listener);
     return () => ipcRenderer.removeListener('clipboard:sync', listener);
+  },
+
+  onNoteSync: (callback: (payload: any) => void) => {
+    const listener = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on('note:sync', listener);
+    return () => ipcRenderer.removeListener('note:sync', listener);
+  },
+
+  onScreenshotSaved: (callback: (info: { filePath: string; fileName: string }) => void) => {
+    const listener = (_event: any, info: any) => callback(info);
+    ipcRenderer.on('screenshot:saved', listener);
+    return () => ipcRenderer.removeListener('screenshot:saved', listener);
+  },
+
+  onActivityUpdated: (callback: (entries: any[]) => void) => {
+    const listener = (_event: any, entries: any[]) => callback(entries);
+    ipcRenderer.on('activity:updated', listener);
+    return () => ipcRenderer.removeListener('activity:updated', listener);
+  },
+
+  onUnlockRequested: (callback: (payload: any) => void) => {
+    const listener = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on('unlock:requested', listener);
+    return () => ipcRenderer.removeListener('unlock:requested', listener);
   },
 });

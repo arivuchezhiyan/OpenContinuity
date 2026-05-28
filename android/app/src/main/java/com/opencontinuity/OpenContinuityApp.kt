@@ -12,6 +12,8 @@ import com.opencontinuity.features.battery.BatteryMonitor
 import com.opencontinuity.features.clipboard.ClipboardSyncManager
 import com.opencontinuity.features.dragdrop.DragDropManager
 import com.opencontinuity.features.filetransfer.FileTransferManager
+import com.opencontinuity.features.screenshot.ScreenshotSyncManager
+import com.opencontinuity.features.notes.NoteSyncManager
 import com.opencontinuity.features.sms.SmsDataManager
 import com.opencontinuity.features.touchpad.TouchpadManager
 import com.opencontinuity.core.session.SessionManager
@@ -19,13 +21,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
-/**
- * OpenContinuity Application class
- * Initializes core managers and notification channels
- */
 class OpenContinuityApp : Application() {
 
-    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     lateinit var securityManager: SecurityManager
         private set
@@ -36,13 +34,14 @@ class OpenContinuityApp : Application() {
     lateinit var discoveryManager: DiscoveryManager
         private set
 
-    // Feature Managers (Lazy initialized)
     val clipboardSyncManager by lazy { ClipboardSyncManager(this, connectionManager) }
     val batteryMonitor by lazy { BatteryMonitor(this, connectionManager) }
     val fileTransferManager by lazy { FileTransferManager(this, connectionManager) }
     val smsDataManager by lazy { SmsDataManager(this, connectionManager) }
     val touchpadManager by lazy { TouchpadManager(this, connectionManager) }
     val dragDropManager by lazy { DragDropManager(this, connectionManager) }
+    val screenshotSyncManager by lazy { ScreenshotSyncManager(this, connectionManager) }
+    val noteSyncManager by lazy { NoteSyncManager(connectionManager) }
     val sessionManager by lazy { SessionManager(connectionManager) }
 
     override fun onCreate() {
@@ -50,20 +49,15 @@ class OpenContinuityApp : Application() {
         instance = this
 
         val processName = getProcessName(this)
-        val isConnectionProcess = processName?.endsWith(":connection") == true
         val isMainProcess = processName == packageName
+        val isConnectionProcess = processName?.endsWith(":connection") == true
 
-        Log.i("OpenContinuityApp", "Initializing process: $processName (isMain=$isMainProcess, isConnection=$isConnectionProcess)")
+        Log.i("OpenContinuityApp", "Process: $processName (main=$isMainProcess)")
 
-        // Initialize core managers
         securityManager = SecurityManager(this)
         connectionManager = ConnectionManager(this, securityManager)
         discoveryManager = DiscoveryManager(this)
 
-        // Only the connection process should start the discovery beacon by default
-        // if we were to auto-start it. But here we just init the objects.
-        
-        // Create notification channels (safe to do in both, but main is enough)
         if (isMainProcess || isConnectionProcess) {
             createNotificationChannels()
         }
@@ -71,64 +65,46 @@ class OpenContinuityApp : Application() {
 
     private fun getProcessName(context: android.content.Context): String? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            return Application.getProcessName()
+            return getProcessName()
         }
-        val am = context.getSystemService(Application.ACTIVITY_SERVICE) as android.app.ActivityManager
-        val processes = am.runningAppProcesses
-        if (processes != null) {
-            for (process in processes) {
-                if (process.pid == android.os.Process.myPid()) {
-                    return process.processName
-                }
-            }
-        }
-        return null
+        val am = context.getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
+        return am.runningAppProcesses
+            ?.firstOrNull { it.pid == android.os.Process.myPid() }
+            ?.processName
     }
 
     private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager = getSystemService(NotificationManager::class.java)
-
-            // Connection Service Channel
-            val connectionChannel = NotificationChannel(
-                CHANNEL_CONNECTION,
-                "Connection Service",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Shows connection status"
-                setShowBadge(false)
-            }
-
-            // File Transfer Channel
-            val transferChannel = NotificationChannel(
-                CHANNEL_TRANSFER,
-                "File Transfer",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "File transfer progress notifications"
-            }
-
-            // Notifications Sync Channel
-            val notificationSyncChannel = NotificationChannel(
-                CHANNEL_NOTIFICATION_SYNC,
-                "Notification Sync",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Synced notifications from PC"
-            }
-
-            // Clipboard Sync Channel — high importance so banner appears even when screen is on
-            val clipboardChannel = NotificationChannel(
-                CHANNEL_CLIPBOARD,
-                "Clipboard Sync",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Shows clipboard content synced from another device"
-                setShowBadge(false)
-            }
-
-            notificationManager.createNotificationChannels(
-                listOf(connectionChannel, transferChannel, notificationSyncChannel, clipboardChannel)
+            val nm = getSystemService(NotificationManager::class.java)
+            nm.createNotificationChannels(
+                listOf(
+                    NotificationChannel(
+                        CHANNEL_CONNECTION,
+                        "Connection Service",
+                        NotificationManager.IMPORTANCE_LOW
+                    ).apply {
+                        description = "Shows connection status"
+                        setShowBadge(false)
+                    },
+                    NotificationChannel(
+                        CHANNEL_TRANSFER,
+                        "File Transfer",
+                        NotificationManager.IMPORTANCE_DEFAULT
+                    ).apply { description = "File transfer progress" },
+                    NotificationChannel(
+                        CHANNEL_NOTIFICATION_SYNC,
+                        "Notification Sync",
+                        NotificationManager.IMPORTANCE_HIGH
+                    ).apply { description = "Synced notifications from PC" },
+                    NotificationChannel(
+                        CHANNEL_CLIPBOARD,
+                        "Clipboard Sync",
+                        NotificationManager.IMPORTANCE_HIGH
+                    ).apply {
+                        description = "Clipboard content synced from another device"
+                        setShowBadge(false)
+                    }
+                )
             )
         }
     }

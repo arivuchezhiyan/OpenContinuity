@@ -24,17 +24,25 @@ function ScreenMirror() {
   const isConnected = connectionState.status === 'connected';
 
   useEffect(() => {
-    // Listen for stream frames
+    let lastObjectUrl: string | null = null;
+
     const removeListener = window.api.onStreamFrame?.((frame: any) => {
       if (videoRef.current && frame.data) {
-        // Convert frame data to blob and display
         const blob = new Blob([Buffer.from(frame.data, 'base64')], { type: 'image/jpeg' });
-        videoRef.current.src = URL.createObjectURL(blob);
+        const nextUrl = URL.createObjectURL(blob);
+        videoRef.current.src = nextUrl;
+        if (lastObjectUrl) {
+          URL.revokeObjectURL(lastObjectUrl);
+        }
+        lastObjectUrl = nextUrl;
       }
     });
 
     return () => {
       removeListener?.();
+      if (lastObjectUrl) {
+        URL.revokeObjectURL(lastObjectUrl);
+      }
     };
   }, []);
 

@@ -1,5 +1,10 @@
 package com.opencontinuity.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -11,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -21,6 +27,37 @@ import com.opencontinuity.ui.navigation.Screen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(navController: NavController) {
+    val context = LocalContext.current
+    val batteryOptimized = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = context.getSystemService(PowerManager::class.java)
+            pm?.isIgnoringBatteryOptimizations(context.packageName) == true
+        } else {
+            true
+        }
+    }
+
+    var showAutoStartWarning by remember { mutableStateOf(true) }
+    
+    val autoStartIntent = remember {
+        val intent = Intent()
+        val manufacturer = Build.MANUFACTURER.lowercase()
+        when {
+            "xiaomi" in manufacturer -> intent.component = android.content.ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")
+            "oppo" in manufacturer -> intent.component = android.content.ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")
+            "vivo" in manufacturer -> intent.component = android.content.ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity")
+            "letv" in manufacturer -> intent.component = android.content.ComponentName("com.letv.android.letvsafe", "com.letv.android.letvsafe.AutobootManageActivity")
+            "honor" in manufacturer -> intent.component = android.content.ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity")
+            else -> null
+        }
+        
+        if (intent.component != null && context.packageManager.resolveActivity(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY) != null) {
+            intent
+        } else {
+            null
+        }
+    }
+
     val connectionManager = OpenContinuityApp.instance.connectionManager
     val connectionState by connectionManager.connectionState.collectAsState()
     val batteryMonitor = OpenContinuityApp.instance.batteryMonitor
@@ -72,6 +109,92 @@ fun DashboardScreen(navController: NavController) {
                                 style = MaterialTheme.typography.labelLarge
                             )
                         }
+                    }
+                }
+            }
+        }
+
+        if (!batteryOptimized) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Battery optimization is on",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = "Allow unrestricted battery use so the PC stays connected when you leave this app.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+                    )
+                    Button(
+                        onClick = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                try {
+                                    context.startActivity(
+                                        Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                            data = Uri.parse("package:${context.packageName}")
+                                        }
+                                    )
+                                } catch (_: Exception) {
+                                    context.startActivity(
+                                        Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                                    )
+                                }
+                            }
+                        }
+                    ) {
+                        Text("Fix now")
+                    }
+                }
+            }
+        }
+
+        if (autoStartIntent != null && showAutoStartWarning) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Background Execution Blocked",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        IconButton(onClick = { showAutoStartWarning = false }) {
+                            Icon(Icons.Default.Close, contentDescription = "Dismiss", modifier = Modifier.size(20.dp))
+                        }
+                    }
+                    Text(
+                        text = "Your device manufacturer requires you to allow 'AutoStart' or 'Background Start' for OpenContinuity to stay connected in the background.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+                    )
+                    Button(
+                        onClick = {
+                            try {
+                                context.startActivity(autoStartIntent)
+                            } catch (_: Exception) {}
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("Allow Background Execution")
                     }
                 }
             }
@@ -129,6 +252,26 @@ fun DashboardScreen(navController: NavController) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    
+                    if (connectionState is ConnectionState.Disconnected || connectionState is ConnectionState.Error) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        Button(
+                            onClick = { 
+                                val intent = android.content.Intent(context, com.opencontinuity.services.ConnectionService::class.java).apply {
+                                    action = com.opencontinuity.services.ConnectionService.ACTION_START
+                                }
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                    androidx.core.content.ContextCompat.startForegroundService(context, intent)
+                                } else {
+                                    context.startService(intent)
+                                }
+                            },
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Text("Start Service")
+                        }
+                    }
                 }
             }
         }

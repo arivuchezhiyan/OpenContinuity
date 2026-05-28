@@ -4,26 +4,14 @@ import android.util.Log
 import com.opencontinuity.core.connection.ConnectionManager
 import com.opencontinuity.core.protocol.MessageType
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import java.util.concurrent.ConcurrentHashMap
 import javax.crypto.SecretKey
 
-/**
- * Session Manager — maintains per-device session state across reconnects.
- *
- * Responsibilities:
- *  - One [DeviceSession] per paired device (keyed by deviceId)
- *  - Stores the ECDH-derived encryption key for the lifetime of the session
- *  - Heartbeat tracking: session expires if no ping in 10 s
- *  - Calls [onSessionExpired] so ConnectionService can restart the stack
- */
 class SessionManager(private val connectionManager: ConnectionManager) {
 
     companion object {
         private const val TAG = "SessionManager"
-        private const val HEARTBEAT_TIMEOUT_MS = 10_000L
+        private const val HEARTBEAT_TIMEOUT_MS = 30_000L
         private const val WATCHDOG_INTERVAL_MS = 5_000L
     }
 
@@ -39,31 +27,34 @@ class SessionManager(private val connectionManager: ConnectionManager) {
     )
 
     private val sessions = ConcurrentHashMap<String, DeviceSession>()
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var scope: CoroutineScope? = null
     private var watchdogJob: Job? = null
 
     var onSessionExpired: ((DeviceSession) -> Unit)? = null
     var onSessionStarted: ((DeviceSession) -> Unit)? = null
     var onSessionRestored: ((DeviceSession) -> Unit)? = null
 
-    // ─────────────────────────── lifecycle ────────────────────────────────
-
     fun start() {
-        startWatchdog()
-        // Register HEARTBEAT_ACK so we can track liveness
-        connectionManager.registerHandler(MessageType.HEARTBEAT_ACK) { _, _ ->
-            // Find the active session by the connected device
-            sessions.values.firstOrNull()?.let { touchHeartbeat(it.deviceId) }
+        scope?.cancel()
+        scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+        connectionManager.registerHandler(MessageType.HEARTBEAT) { sessionId, _ ->
+            touchHeartbeatForWsSession(sessionId)
         }
+
+        connectionManager.registerHandler(MessageType.HEARTBEAT_ACK) { sessionId, _ ->
+            touchHeartbeatForWsSession(sessionId)
+        }
+
+        startWatchdog()
     }
 
     fun stop() {
         watchdogJob?.cancel()
         watchdogJob = null
-        scope.cancel()
+        scope?.cancel()
+        scope = null
     }
-
-    // ───────────────────────── session CRUD ───────────────────────────────
 
     fun createSession(
         deviceId: String,
@@ -97,7 +88,6 @@ class SessionManager(private val connectionManager: ConnectionManager) {
     }
 
     fun getSession(deviceId: String): DeviceSession? = sessions[deviceId]
-
     fun getAllSessions(): List<DeviceSession> = sessions.values.toList()
 
     fun setEncryptionKey(deviceId: String, key: SecretKey) {
@@ -105,20 +95,23 @@ class SessionManager(private val connectionManager: ConnectionManager) {
     }
 
     fun endSession(deviceId: String) {
-        sessions.remove(deviceId)?.let {
-            Log.i(TAG, "Session ended: ${it.deviceName}")
-        }
+        sessions.remove(deviceId)?.let { Log.i(TAG, "Session ended: ${it.deviceName}") }
     }
-
-    // ────────────────────────── heartbeat ─────────────────────────────────
 
     fun touchHeartbeat(deviceId: String) {
         sessions[deviceId]?.lastHeartbeat = System.currentTimeMillis()
     }
 
+    private fun touchHeartbeatForWsSession(wsSessionId: String) {
+        val clientName = connectionManager.connectedClients.value
+            .firstOrNull { it.sessionId == wsSessionId }?.deviceName ?: return
+        sessions.values.firstOrNull { it.deviceName == clientName }
+            ?.let { touchHeartbeat(it.deviceId) }
+    }
+
     private fun startWatchdog() {
         if (watchdogJob?.isActive == true) return
-        watchdogJob = scope.launch {
+        watchdogJob = scope?.launch {
             while (isActive) {
                 delay(WATCHDOG_INTERVAL_MS)
                 checkHeartbeats()
@@ -128,10 +121,11 @@ class SessionManager(private val connectionManager: ConnectionManager) {
 
     private fun checkHeartbeats() {
         val now = System.currentTimeMillis()
-        for (session in sessions.values) {
+        for (session in sessions.values.toList()) {
             val elapsed = now - session.lastHeartbeat
             if (elapsed > HEARTBEAT_TIMEOUT_MS) {
                 Log.w(TAG, "Heartbeat timeout for ${session.deviceName} (${elapsed}ms)")
+                sessions.remove(session.deviceId)
                 onSessionExpired?.invoke(session)
             }
         }

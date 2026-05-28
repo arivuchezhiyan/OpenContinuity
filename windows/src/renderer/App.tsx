@@ -6,7 +6,10 @@ import Pairing from './pages/Pairing';
 import FileTransfer from './pages/FileTransfer';
 import SMS from './pages/SMS';
 import Notifications from './pages/Notifications';
+import NoteMaker from './pages/NoteMaker';
 import ScreenMirror from './pages/ScreenMirror';
+import Screenshots from './pages/Screenshots';
+import Touchpad from './pages/Touchpad';
 import Settings from './pages/Settings';
 import { ConnectionProvider } from './contexts/ConnectionContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -24,7 +27,10 @@ function App() {
               <Route path="files" element={<FileTransfer />} />
               <Route path="sms" element={<SMS />} />
               <Route path="notifications" element={<Notifications />} />
+              <Route path="notes" element={<NoteMaker />} />
               <Route path="screen-mirror" element={<ScreenMirror />} />
+              <Route path="screenshots" element={<Screenshots />} />
+              <Route path="touchpad" element={<Touchpad />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>

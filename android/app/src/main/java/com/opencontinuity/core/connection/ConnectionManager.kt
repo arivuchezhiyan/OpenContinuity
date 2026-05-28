@@ -39,10 +39,13 @@ class ConnectionManager(
         private const val TAG = "ConnectionManager"
         const val DEFAULT_PORT = 8765
         const val HTTP_PORT = 8766
+        private const val HEARTBEAT_INTERVAL_MS = 10_000L
     }
 
+    private val serverLock = Any()
     private var webSocketServer: NettyApplicationEngine? = null
     private var httpServer: NettyApplicationEngine? = null
+    private var heartbeatJob: Job? = null
 
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
@@ -63,34 +66,40 @@ class ConnectionManager(
     // Coroutine scope for server operations
     private val serverScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    // Active pairing code for validation
+    private var activePairingCode: String? = null
+
     /**
      * Start the WebSocket server
      */
     fun startServer(port: Int = DEFAULT_PORT): Boolean {
-        if (webSocketServer != null) {
-            Log.w(TAG, "Server already running")
-            return true
-        }
+        synchronized(serverLock) {
+            if (webSocketServer != null) {
+                Log.w(TAG, "Server already running")
+                return true
+            }
+            return try {
+                webSocketServer = embeddedServer(Netty, port = port) {
+                    installPlugins()
+                    configureWebSocket()
+                }.start(wait = false)
 
-        return try {
-            webSocketServer = embeddedServer(Netty, port = port) {
-                installPlugins()
-                configureWebSocket()
-            }.start(wait = false)
+                httpServer = embeddedServer(Netty, port = HTTP_PORT) {
+                    installPlugins()
+                    configureHttpRoutes()
+                }.start(wait = false)
 
-            httpServer = embeddedServer(Netty, port = HTTP_PORT) {
-                installPlugins()
-                configureHttpRoutes()
-            }.start(wait = false)
-
-            _connectionState.value = ConnectionState.Listening(port)
-            Log.i(TAG, "WebSocket server started on port $port")
-            Log.i(TAG, "HTTP server started on port $HTTP_PORT")
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start server", e)
-            _connectionState.value = ConnectionState.Error(e.message ?: "Unknown error")
-            false
+                _connectionState.value = ConnectionState.Listening(port)
+                Log.i(TAG, "WebSocket server started on port $port")
+                Log.i(TAG, "HTTP server started on port $HTTP_PORT")
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start server", e)
+                _connectionState.value = ConnectionState.Error(e.message ?: "Unknown error")
+                webSocketServer = null
+                httpServer = null
+                false
+            }
         }
     }
 
@@ -123,11 +132,10 @@ class ConnectionManager(
             // (was 60s — which meant the server held a dead socket for up to 5 minutes).
             // Windows client sends its own WS ping every 15s; combined these keep the
             // radio awake on hotspot/tethering scenarios.
-            // Ping every 5 s — dead socket detected within ~5 s when phone goes to background.
-            // Previous 20 s ping + 60 s timeout meant a dropped connection was held open for
-            // up to 80 s, causing all features (clipboard, touchpad, etc.) to silently fail.
-            pingPeriod = Duration.ofSeconds(5)
-            timeout = Duration.ofSeconds(15)       // close if no pong within 15s
+            // Balanced keepalive: responsive enough for interactive use, tolerant when the
+            // CPU/Wi-Fi radio is throttled while the app is in the background.
+            pingPeriod = Duration.ofSeconds(10)
+            timeout = Duration.ofSeconds(30)
             maxFrameSize = Long.MAX_VALUE
             masking = false
         }
@@ -155,8 +163,8 @@ class ConnectionManager(
                                         val handshake = protocolJson.decodeFromJsonElement<HandshakePayload>(message.payload)
                                         clientInfo = handleHandshake(sessionId, handshake)
                                         authenticated = true
-
                                         updateConnectedClients(sessionId, clientInfo, true)
+                                        ensureHeartbeat()
                                     } else if (authenticated) {
                                         handleMessage(sessionId, message)
                                     }
@@ -258,12 +266,30 @@ class ConnectionManager(
         )
 
         // Send handshake response
+        val app = com.opencontinuity.OpenContinuityApp.instance
+        val peerDeviceId = handshake.deviceId ?: sessionId
+        val existing = app.sessionManager.getSession(peerDeviceId)
+        val sessionToken = if (existing != null) {
+            app.sessionManager.restoreSession(peerDeviceId, handshake.deviceName, existing.sessionToken)
+            existing.sessionToken
+        } else {
+            val token = securityManager.generateSessionToken()
+            app.sessionManager.createSession(
+                deviceId = peerDeviceId,
+                deviceName = handshake.deviceName,
+                sessionToken = token,
+                capabilities = handshake.features
+            )
+            token
+        }
+
         val response = HandshakeResponsePayload(
             accepted = true,
             deviceName = Build.MODEL,
             deviceType = DeviceType.ANDROID,
             publicKey = securityManager.getPublicKeyBase64(),
-            sessionToken = securityManager.generateSessionToken(),
+            sessionToken = sessionToken,
+            deviceId = securityManager.deviceId,
             features = listOf(
                 "clipboard", "file_transfer", "notifications", "sms",
                 "camera", "screen_mirror", "battery", "input_control", "touchpad"
@@ -281,6 +307,21 @@ class ConnectionManager(
         return client
     }
 
+    private fun ensureHeartbeat() {
+        if (heartbeatJob?.isActive == true) return
+        heartbeatJob = serverScope.launch {
+            while (isActive) {
+                delay(HEARTBEAT_INTERVAL_MS)
+                if (sessions.isEmpty()) continue
+                val msg = ProtocolMessage(
+                    type = MessageType.HEARTBEAT,
+                    payload = protocolJson.encodeToJsonElement(mapOf("ts" to System.currentTimeMillis()))
+                )
+                broadcast(msg)
+            }
+        }
+    }
+
     private suspend fun handlePairingRequest(
         session: WebSocketSession,
         message: ProtocolMessage
@@ -288,8 +329,8 @@ class ConnectionManager(
         val pairingRequest = protocolJson.decodeFromJsonElement<PairingRequestPayload>(message.payload)
         Log.i(TAG, "Pairing request from: ${pairingRequest.deviceName}")
 
-        // TODO: Validate pairing code against active pairing session
-        val success = true // Placeholder
+        // Validate pairing code against active pairing session
+        val success = (activePairingCode != null && activePairingCode == pairingRequest.pairingCode)
 
         val response = PairingResponsePayload(
             success = success,
@@ -315,11 +356,48 @@ class ConnectionManager(
     private suspend fun handleMessage(sessionId: String, message: ProtocolMessage) {
         Log.d(TAG, "Received message: ${message.type} from $sessionId")
 
-        // Emit to external observers
-        _incomingMessages.emit(Pair(sessionId, message))
+        when (message.type) {
+            MessageType.HEARTBEAT -> {
+                val ack = ProtocolMessage(
+                    type = MessageType.HEARTBEAT_ACK,
+                    payload = protocolJson.encodeToJsonElement(mapOf("ok" to true))
+                )
+                sendToSession(sessionId, ack)
+            }
+            MessageType.SESSION_RESTORE -> {
+                handleSessionRestore(sessionId, message)
+            }
+            else -> {
+                _incomingMessages.emit(Pair(sessionId, message))
+                messageHandlers[message.type]?.invoke(sessionId, message)
+            }
+        }
+    }
 
-        // Call registered handler
-        messageHandlers[message.type]?.invoke(sessionId, message)
+    private suspend fun handleSessionRestore(sessionId: String, message: ProtocolMessage) {
+        val payload = protocolJson.decodeFromJsonElement<SessionRestorePayload>(message.payload)
+        val session = com.opencontinuity.OpenContinuityApp.instance.sessionManager
+            .getSession(payload.deviceId)
+        val restored = session != null && session.sessionToken == payload.sessionToken
+
+        val ackPayload = SessionRestoreAckPayload(
+            restored = restored,
+            sessionToken = if (restored) session?.sessionToken else null,
+            errorMessage = if (restored) null else "Invalid or expired session"
+        )
+        sendToSession(
+            sessionId,
+            ProtocolMessage(
+                type = MessageType.SESSION_RESTORE_ACK,
+                payload = protocolJson.encodeToJsonElement(ackPayload)
+            )
+        )
+        if (restored) {
+            session?.let { com.opencontinuity.OpenContinuityApp.instance.sessionManager.touchHeartbeat(it.deviceId) }
+            Log.i(TAG, "Session restored for ${payload.deviceName}")
+        } else {
+            Log.w(TAG, "Session restore failed for ${payload.deviceName}")
+        }
     }
 
     /**
@@ -380,29 +458,47 @@ class ConnectionManager(
      * engine has silently crashed, this will return false rather than a stale true.
      */
     fun isServerRunning(): Boolean {
-        val ws = webSocketServer ?: return false
-        val http = httpServer ?: return false
+        if (webSocketServer == null || httpServer == null) return false
         return try {
-            ws.application
-            http.application
+            java.net.Socket().use { socket ->
+                socket.connect(java.net.InetSocketAddress("127.0.0.1", HTTP_PORT), 500)
+            }
             true
         } catch (_: Exception) {
             false
         }
     }
 
+    /**
+     * Set the active pairing code for validation when devices attempt to pair.
+     * This should be called when the pairing UI generates a code.
+     */
+    fun setActivePairingCode(code: String) {
+        activePairingCode = code
+        Log.i(TAG, "Active pairing code set")
+    }
+
+    /**
+     * Clear the active pairing code (called after successful pairing or session timeout)
+     */
+    fun clearActivePairingCode() {
+        activePairingCode = null
+        Log.i(TAG, "Active pairing code cleared")
+    }
+
     fun stopServer() {
-        webSocketServer?.stop(1000, 2000)
-        webSocketServer = null
-
-        httpServer?.stop(1000, 2000)
-        httpServer = null
-
-        sessions.clear()
-        _connectedClients.value = emptyList()
-        _connectionState.value = ConnectionState.Disconnected
-
-        Log.i(TAG, "Server stopped")
+        synchronized(serverLock) {
+            heartbeatJob?.cancel()
+            heartbeatJob = null
+            webSocketServer?.stop(1000, 2000)
+            webSocketServer = null
+            httpServer?.stop(1000, 2000)
+            httpServer = null
+            sessions.clear()
+            _connectedClients.value = emptyList()
+            _connectionState.value = ConnectionState.Disconnected
+            Log.i(TAG, "Server stopped")
+        }
     }
 
     fun cleanup() {

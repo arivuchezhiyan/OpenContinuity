@@ -30,13 +30,42 @@ const features = [
   { id: 'remote', label: 'Remote Control', icon: DevicePhoneMobileIcon, color: 'bg-cyan-500' },
   { id: 'touchpad', label: 'Touchpad', icon: CursorArrowRaysIcon, color: 'bg-teal-500', link: '/touchpad' },
   { id: 'screenshot', label: 'Screenshot Sync', icon: PhotoIcon, color: 'bg-lime-500', link: '/screenshots' },
+  { id: 'notes', label: 'Note Board', icon: PhotoIcon, color: 'bg-slate-500', link: '/notes' },
   { id: 'pairing', label: 'Device Pairing', icon: QrCodeIcon, color: 'bg-violet-500', link: '/pairing' }
 ];
 
+interface ActivityEntry {
+  id: string;
+  timestamp: number;
+  action: string;
+  detail?: string;
+}
+
+const actionLabels: Record<string, string> = {
+  connected: 'Connected',
+  disconnected: 'Disconnected',
+  handshake_complete: 'Session ready',
+  notification: 'Notification',
+  screenshot_saved: 'Screenshot saved',
+  pc_wake: 'PC wake requested',
+  clipboard_sync: 'Clipboard synced',
+};
+
 function Dashboard() {
   const { connectionState, batteryStatus, disconnect, discoveredDevices, connect } = useConnection();
+  const [activity, setActivity] = React.useState<ActivityEntry[]>([]);
 
   const isConnected = connectionState.status === 'connected';
+
+  React.useEffect(() => {
+    window.api.activity?.get?.().then((entries: ActivityEntry[]) => {
+      if (entries) setActivity(entries);
+    });
+    const remove = window.api.onActivityUpdated?.((entries: ActivityEntry[]) => {
+      setActivity(entries);
+    });
+    return () => remove?.();
+  }, []);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -171,18 +200,38 @@ function Dashboard() {
       </div>
 
       {/* Recent Activity */}
-      {isConnected && (
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Recent Activity
-          </h3>
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Recent Activity
+        </h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          {activity.length === 0 ? (
             <p className="text-gray-500 dark:text-gray-400 text-center py-8">
               No recent activity
             </p>
-          </div>
+          ) : (
+            <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+              {activity.map((entry) => (
+                <li key={entry.id} className="py-3 flex justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {actionLabels[entry.action] || entry.action}
+                    </p>
+                    {entry.detail && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-md">
+                        {entry.detail}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">
+                    {new Date(entry.timestamp).toLocaleTimeString()}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

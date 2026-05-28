@@ -2,31 +2,31 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Network Permissions -->
+    <!-- Network -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
 
-    <!-- Bluetooth Permissions (for PC unlock feature) -->
+    <!-- Bluetooth -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 
-    <!-- SMS Permissions -->
+    <!-- SMS -->
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 
-    <!-- Camera Permissions -->
+    <!-- Camera -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!-- Storage Permissions -->
+    <!-- Storage -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
@@ -35,7 +35,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
 
-    <!-- Foreground Service -->
+    <!-- Foreground service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
@@ -43,22 +43,21 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Screen Mirroring -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
-
-    <!-- Wake Lock -->
+    <!-- Wake / Wifi lock -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- Battery optimization exemption - keeps foreground service alive when app is minimized -->
+    <!-- Exact alarm for service restart on Android 12+ -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <!-- Battery optimization exemption -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
-    <!-- Boot Receiver -->
+    <!-- Boot receiver -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Vibration -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
-    <!-- Camera Feature Declaration -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
     <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
@@ -74,7 +73,6 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="34">
 
-        <!-- Main Activity -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -84,7 +82,6 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Share intentions for Universal Drop Box -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -97,10 +94,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Transparent clipboard capture activity.
-             Launched by the "Share clipboard to laptop" notification.
-             It gains a foreground window (required for clipboard read on Android 10+),
-             reads the clipboard, sends it to the laptop, then finishes instantly. -->
         <activity
             android:name=".features.clipboard.ClipboardCaptureActivity"
             android:exported="false"
@@ -110,29 +103,25 @@
             android:taskAffinity=""
             android:autoRemoveFromRecents="true" />
 
-        <!-- Connection Service (WebSocket + HTTP Server) -->
         <service
             android:name=".services.ConnectionService"
             android:enabled="true"
             android:exported="false"
-            android:process=":connection"
             android:stopWithTask="false"
             android:foregroundServiceType="connectedDevice|dataSync" />
 
-        <!-- Camera Streaming Service -->
         <service
             android:name=".features.camera.CameraStreamService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="camera" />
 
-        <!-- Screen Mirror Service -->
         <service
             android:name=".features.screenmirror.ScreenMirrorService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />
-        <!-- Notification Listener Service -->
+
         <service
             android:name=".features.notifications.NotificationSyncService"
             android:enabled="true"
@@ -143,7 +132,6 @@
             </intent-filter>
         </service>
 
-        <!-- Accessibility Service (for input injection) -->
         <service
             android:name=".features.inputcontrol.InputAccessibilityService"
             android:enabled="true"
@@ -157,7 +145,6 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- SMS Receiver -->
         <receiver
             android:name=".features.sms.SmsReceiver"
             android:enabled="true"
@@ -168,7 +155,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- Boot Receiver -->
         <receiver
             android:name=".services.BootReceiver"
             android:enabled="true"
@@ -184,7 +170,6 @@
             android:enabled="true"
             android:exported="false" />
 
-        <!-- File Provider for sharing files -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

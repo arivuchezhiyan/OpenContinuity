@@ -5,7 +5,15 @@
 import WebSocket from 'ws';
 import { EventEmitter } from 'events';
 import { SecurityManager } from '../security/SecurityManager';
-import { MessageType, ProtocolMessage, HandshakePayload, HandshakeResponsePayload, generateMessageId, PROTOCOL_VERSION } from '../../shared/protocol';
+import {
+  MessageType,
+  ProtocolMessage,
+  HandshakePayload,
+  HandshakeResponsePayload,
+  SessionRestorePayload,
+  generateMessageId,
+  PROTOCOL_VERSION
+} from '../../shared/protocol';
 
 export interface ConnectionState {
   status: 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -21,7 +29,7 @@ export class ConnectionManager extends EventEmitter {
   private state: ConnectionState = { status: 'disconnected' };
   private reconnectAttempts = 0;
   private readonly maxReconnectAttempts = 20;
-  private readonly reconnectBaseDelay = 2000;
+  private readonly reconnectBaseDelay = 1000;
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private heartbeatMsgInterval: NodeJS.Timeout | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
@@ -30,9 +38,31 @@ export class ConnectionManager extends EventEmitter {
   private lastPort: number | null = null;
   private messageHandlers: Map<MessageType, ((message: ProtocolMessage) => void)[]> = new Map();
 
+  private onHandshakeComplete?: (payload: HandshakeResponsePayload) => void;
+  private onHeartbeatAck?: () => void;
+
   constructor(securityManager: SecurityManager) {
     super();
     this.securityManager = securityManager;
+  }
+
+  setHandshakeCompleteHandler(handler: (payload: HandshakeResponsePayload) => void): void {
+    this.onHandshakeComplete = handler;
+  }
+
+  setHeartbeatAckHandler(handler: () => void): void {
+    this.onHeartbeatAck = handler;
+  }
+
+  /** Send session restore after a successful handshake (reconnect path). */
+  trySessionRestore(stored: SessionRestorePayload): void {
+    if (!this.isConnected()) return;
+    this.send({
+      type: MessageType.SESSION_RESTORE,
+      payload: stored,
+      timestamp: Date.now(),
+      messageId: generateMessageId()
+    });
   }
 
   getState(): ConnectionState {
@@ -161,7 +191,13 @@ export class ConnectionManager extends EventEmitter {
     }
 
     this.reconnectAttempts++;
-    const delay = Math.min(this.reconnectBaseDelay * this.reconnectAttempts, 30000);
+    
+    // Aggressively attempt to reconnect within 500ms for the first 3 tries 
+    // to seamlessly handle quick app swiping / background kills by Android.
+    const delay = this.reconnectAttempts <= 3 
+      ? 500 
+      : Math.min(this.reconnectBaseDelay * this.reconnectAttempts, 30000);
+      
     console.log(`Scheduling reconnect ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
 
     this.state = { status: 'disconnected' };
@@ -197,6 +233,7 @@ export class ConnectionManager extends EventEmitter {
       deviceType: 'windows',
       protocolVersion: PROTOCOL_VERSION,
       publicKey: this.securityManager.getPublicKeyBase64(),
+      deviceId: this.securityManager.getDeviceId(),
       features: [
         'clipboard', 'file_transfer', 'notifications', 'sms',
         'camera', 'screen_mirror', 'battery', 'input_control', 'touchpad'
@@ -228,6 +265,8 @@ export class ConnectionManager extends EventEmitter {
           this.emit('stateChanged', this.state);
           this.emit('connectedInternal'); // resolves the connect() promise
           this.emit('connected');         // backwards-compat for feature handlers
+          this.emit('handshakeComplete', payload);
+          this.onHandshakeComplete?.(payload);
         }
         return;
       }
@@ -240,6 +279,17 @@ export class ConnectionManager extends EventEmitter {
           messageId: generateMessageId()
         });
         return;
+      }
+
+      if (message.type === MessageType.HEARTBEAT_ACK) {
+        this.onHeartbeatAck?.();
+      }
+
+      if (message.type === MessageType.SESSION_RESTORE_ACK) {
+        const ack = message.payload as { restored?: boolean };
+        if (ack?.restored) {
+          console.log('Session restored on phone');
+        }
       }
 
       const handlers = this.messageHandlers.get(message.type);
