@@ -21,6 +21,7 @@ windows/node_modules/
 windows/dist/
 windows/out/
 windows/build/
+windows/release/
 windows/.env
 windows/.vscode/
 

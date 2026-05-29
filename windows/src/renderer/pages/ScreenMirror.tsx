@@ -20,6 +20,7 @@ function ScreenMirror() {
   const [streamQuality, setStreamQuality] = useState<'low' | 'medium' | 'high'>('medium');
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const previousUrlRef = useRef<string | null>(null);
 
   const isConnected = connectionState.status === 'connected';
 
@@ -27,13 +28,25 @@ function ScreenMirror() {
     // Listen for stream frames
     const removeListener = window.api.onStreamFrame?.((frame: any) => {
       if (videoRef.current && frame.data) {
+        // Revoke previous ObjectURL to prevent memory leak
+        if (previousUrlRef.current) {
+          URL.revokeObjectURL(previousUrlRef.current);
+        }
+        
         // Convert frame data to blob and display
         const blob = new Blob([Buffer.from(frame.data, 'base64')], { type: 'image/jpeg' });
-        videoRef.current.src = URL.createObjectURL(blob);
+        const newUrl = URL.createObjectURL(blob);
+        videoRef.current.src = newUrl;
+        previousUrlRef.current = newUrl;
       }
     });
 
     return () => {
+      // Cleanup: revoke the last ObjectURL
+      if (previousUrlRef.current) {
+        URL.revokeObjectURL(previousUrlRef.current);
+        previousUrlRef.current = null;
+      }
       removeListener?.();
     };
   }, []);

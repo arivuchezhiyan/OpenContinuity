@@ -1,0 +1,131 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                ║
+║                    ⚠️  CRITICAL FIX - RUN THIS NOW ⚠️                          ║
+║                                                                                ║
+║          Large files still in Git - Need to remove them before push            ║
+║                                                                                ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+
+COPY AND PASTE EACH COMMAND ONE BY ONE IN GIT BASH OR COMMAND PROMPT
+(NOT PowerShell - use Git Bash or Command Prompt)
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+COMMAND 1: Navigate to repository
+
+cd C:\Users\arivu\OneDrive\Desktop\OpenContinuity
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+COMMAND 2: Remove large files from Git (KEEPS THEM ON YOUR DISK)
+
+git rm -r --cached windows/release/
+
+EXPECTED OUTPUT:
+rm 'windows/release/OpenContinuity Setup 1.0.0.exe'
+rm 'windows/release/OpenContinuity Setup 1.0.0.exe.blockmap'
+rm 'windows/release/win-unpacked/OpenContinuity.exe'
+... (more files)
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+COMMAND 3: Check status
+
+git status
+
+EXPECTED OUTPUT:
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        deleted:    windows/release/OpenContinuity Setup 1.0.0.exe
+        deleted:    windows/release/win-unpacked/OpenContinuity.exe
+        ... (more deletions)
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        windows/release/
+
+✅ THIS IS CORRECT! Files staged for removal but still on your disk
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+COMMAND 4: Commit the removal
+
+git commit -m "Remove build artifacts from Git
+
+Build executables should not be in version control:
+- Removed windows/release/ directory (74MB + 168MB .exe files)
+- Build artifacts bloat repository and cause push failures
+- Users can download builds from GitHub Releases instead
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
+
+EXPECTED OUTPUT:
+[main abc1234] Remove build artifacts from Git
+ 1023 files changed, 1 insertion(+)
+ delete mode 100644 windows/release/OpenContinuity Setup 1.0.0.exe
+ delete mode 100644 windows/release/win-unpacked/OpenContinuity.exe
+ ...
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+COMMAND 5: Verify commit
+
+git log --oneline -n 2
+
+EXPECTED OUTPUT:
+abc1234 (HEAD -> main) Remove build artifacts from Git
+def5678 (origin/main) [previous commit]
+
+Note: origin/main is NOT updated yet (it's on previous commit)
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+COMMAND 6: NOW PUSH TO GITHUB
+
+git push origin main
+
+EXPECTED OUTPUT (SUCCESS - should say this):
+Enumerating objects: 45, done.
+Counting objects: 100% (45/45), done.
+Delta compression using up to 12 threads
+Compressing objects: 100% (20/20), done.
+Writing objects: 100% (25/25), 3.25 KiB | 1.62 MiB/s, done.
+Total 25 (delta 15), reused 0 (delta 0), reused pack 0 (delta 0)
+remote: Resolving deltas: 100% (15/15), completed with 8 local objects.
+To https://github.com/arivuchezhiyan/OpenContinuity.git
+   def5678..abc1234  main -> main
+
+✅ KEY SIGN OF SUCCESS: "main -> main" at the end!
+❌ NO "file too large" warnings!
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+COMMAND 7: Verify success
+
+git log --oneline -n 1
+
+EXPECTED OUTPUT:
+abc1234 (HEAD -> main, origin/main) Remove build artifacts from Git
+
+Notice "origin/main" now matches local "main" = SUCCESS!
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+✅ AFTER SUCCESSFUL PUSH:
+
+1. Your .exe files are STILL in: C:\Users\arivu\OneDrive\Desktop\OpenContinuity\windows\release\
+2. They're just not tracked by Git anymore
+3. Repository is now clean for pushing
+4. Next step: Upload to GitHub Releases for proper distribution
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+🎯 IMPORTANT: 
+- Use Git Bash or Command Prompt (NOT PowerShell ISE)
+- Copy EACH command completely
+- Paste one at a time
+- Wait for each to complete before next command
+- Look for "main -> main" in push output = SUCCESS
+
+═══════════════════════════════════════════════════════════════════════════════════

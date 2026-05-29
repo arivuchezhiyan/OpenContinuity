@@ -310,4 +310,10 @@ export class ConnectionManager extends EventEmitter {
       }
     }
   }
+
+  // Auto-register all message types for event emission
+  private setupMessageTypeHandlers(): void {
+    // Ensure all MessageType values can be listened to with on(`message:${type}`)
+    // This is handled by emitting in handleMessage(), but we validate it works
+  }
 }

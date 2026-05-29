@@ -15,6 +15,7 @@ import { ScreenMirrorManager } from '../../features/screenmirror/ScreenMirrorMan
 import { ScreenshotSyncManager } from '../../features/screenmirror/ScreenshotSyncManager';
 import { TouchpadManager } from '../../features/touchpad/TouchpadManager';
 import { FileTransferManager } from '../../features/filetransfer/FileTransferManager';
+import { DragDropManager } from '../../features/dragdrop/DragDropManager';
 import { InputControlManager } from '../../features/input/InputControlManager';
 import { MessageType, generateMessageId } from '../../shared/protocol';
 import QRCode from 'qrcode';
@@ -61,6 +62,7 @@ export function setupIPC(managers: Managers): void {
 
   // Additional managers
   const fileTransferManager = new FileTransferManager(connectionManager);
+  const dragDropManager = new DragDropManager(connectionManager, securityManager.getDeviceId ? securityManager.getDeviceId() : 'windows-device');
   const inputControlManager = new InputControlManager();
   const touchpadManager = new TouchpadManager(connectionManager, inputControlManager);
   const settingsStore = new Store<AppSettings>({
@@ -291,7 +293,7 @@ export function setupIPC(managers: Managers): void {
   connectionManager.on(`message:${MessageType.NOTIFICATION_POST}`, (message) => {
     notificationManager.addNotification(message.payload);
     BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send('notifications:received', message.payload);
+      win.webContents.send('notification:received', message.payload);
     });
   });
 
@@ -428,6 +430,67 @@ export function setupIPC(managers: Managers): void {
   connectionManager.on(`message:${MessageType.NOTE_SYNC}`, (message) => {
     BrowserWindow.getAllWindows().forEach(win => {
       win.webContents.send('note:sync', message.payload);
+    });
+  });
+
+  // ==================== Drag & Drop ====================
+
+  ipcMain.handle('dragdrop:startEdgeDrag', async (_event, filePath: string, edgeX: number, edgeY: number) => {
+    return dragDropManager.startEdgeDrag(filePath, edgeX, edgeY);
+  });
+
+  ipcMain.handle('dragdrop:acceptDrop', async (_event, dragId: string) => {
+    dragDropManager.acceptDrop(dragId);
+  });
+
+  ipcMain.handle('dragdrop:rejectDrop', async (_event, dragId: string) => {
+    dragDropManager.rejectDrop(dragId);
+  });
+
+  ipcMain.handle('dragdrop:getPendingDrags', async () => {
+    return dragDropManager.getPendingDrags();
+  });
+
+  // Forward drag-drop events to renderer
+  dragDropManager.on('dragReceived', (drag) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('dragdrop:received', drag);
+    });
+  });
+
+  dragDropManager.on('dragStarted', (drag) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('dragdrop:started', drag);
+    });
+  });
+
+  dragDropManager.on('dragAcceptedByPeer', (drag) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('dragdrop:acceptedByPeer', drag);
+    });
+  });
+
+  dragDropManager.on('dragRejectedByPeer', (drag) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('dragdrop:rejectedByPeer', drag);
+    });
+  });
+
+  dragDropManager.on('dragCancelled', (drag) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('dragdrop:cancelled', drag);
+    });
+  });
+
+  dragDropManager.on('dropAccepted', (drag) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('dragdrop:dropAccepted', drag);
+    });
+  });
+
+  dragDropManager.on('dropRejected', (drag) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('dragdrop:dropRejected', drag);
     });
   });
 }
