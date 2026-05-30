@@ -175,10 +175,32 @@ class FileTransferManager(
 
                 val buffer = ByteArray(CHUNK_SIZE)
                 var bytesRead: Int
+                
+                var sequence = 0
+                val totalChunks = Math.ceil(totalBytes.toDouble() / CHUNK_SIZE).toInt()
 
                 while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                    // In a real implementation, we'd send chunks via HTTP POST
-                    // For now, this is a placeholder
+                    val chunk = buffer.copyOfRange(0, bytesRead)
+                    val encodedData = android.util.Base64.encodeToString(chunk, android.util.Base64.NO_WRAP)
+                    
+                    val digest = MessageDigest.getInstance("SHA-256")
+                    val checksumBytes = digest.digest(chunk)
+                    val checksum = checksumBytes.joinToString("") { "%02x".format(it) }
+
+                    val chunkPayload = FileChunkPayload(
+                        transferId = pending.transferId,
+                        sequence = sequence,
+                        totalChunks = totalChunks,
+                        data = encodedData,
+                        checksum = checksum
+                    )
+                    
+                    val chunkMessage = ProtocolMessage(
+                        type = MessageType.FILE_CHUNK,
+                        payload = protocolJson.encodeToJsonElement(chunkPayload)
+                    )
+                    
+                    connectionManager.sendToSession(sessionId, chunkMessage)
 
                     bytesTransferred += bytesRead
                     val progress = bytesTransferred.toFloat() / totalBytes
@@ -201,8 +223,7 @@ class FileTransferManager(
 
                     connectionManager.sendToSession(sessionId, progressMessage)
 
-                    // Simulate transfer delay (remove in production)
-                    delay(10)
+                    sequence++
                 }
 
                 // Transfer complete
