@@ -88,6 +88,7 @@ export interface WindowAPI {
     openDownloadFolder?: () => void;
     open: (transferId: string) => Promise<void>;
     showInFolder: (transferId: string) => Promise<void>;
+    saveAs: (transferId: string) => Promise<boolean>;
   };
 
   sms: {

@@ -34,6 +34,21 @@ fun FileTransferScreen(navController: NavController) {
 
     val activeTransfers by fileTransferManager.activeTransfers.collectAsState()
 
+    var activeSaveTransfer by remember { mutableStateOf<FileTransfer?>(null) }
+    
+    val saveAsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("*/*")
+    ) { uri: Uri? ->
+        uri?.let { destUri ->
+            activeSaveTransfer?.let { transfer ->
+                scope.launch {
+                    fileTransferManager.saveToUri(transfer.id, destUri)
+                }
+            }
+        }
+        activeSaveTransfer = null
+    }
+
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -139,7 +154,13 @@ fun FileTransferScreen(navController: NavController) {
                     modifier = Modifier.weight(1f)
                 ) {
                     items(activeTransfers) { transfer ->
-                        TransferItem(transfer = transfer)
+                        TransferItem(
+                            transfer = transfer,
+                            onSaveAsClick = {
+                                activeSaveTransfer = transfer
+                                saveAsLauncher.launch(transfer.fileName)
+                            }
+                        )
                     }
                 }
             }
@@ -148,7 +169,7 @@ fun FileTransferScreen(navController: NavController) {
 }
 
 @Composable
-fun TransferItem(transfer: FileTransfer) {
+fun TransferItem(transfer: FileTransfer, onSaveAsClick: () -> Unit = {}) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -194,6 +215,18 @@ fun TransferItem(transfer: FileTransfer) {
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(top = 4.dp)
                 )
+            }
+            
+            if (transfer.status == TransferStatus.COMPLETED && transfer.direction == TransferDirection.INCOMING) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onSaveAsClick) {
+                        Text("Save As...")
+                    }
+                }
             }
         }
     }

@@ -210,32 +210,15 @@ export function setupIPC(managers: Managers): void {
     fileTransferManager.showInFolder(transferId);
   });
 
-  // Forward file transfer updates to renderer
-  connectionManager.on(`message:${MessageType.FILE_TRANSFER_REQUEST}`, (message) => {
-    BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send('file:transferUpdate', {
-        ...message.payload,
-        status: 'pending',
-        direction: 'receive'
-      });
-    });
+  ipcMain.handle('file:saveAs', async (_event, transferId: string) => {
+    return await fileTransferManager.saveAs(transferId);
   });
 
-  connectionManager.on(`message:${MessageType.FILE_TRANSFER_PROGRESS}`, (message) => {
+  // Forward file transfer updates from FileTransferManager to renderer
+  // (FileTransferManager handles all the protocol messages and state management)
+  fileTransferManager.on('transferUpdate', (transfer) => {
     BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send('file:transferUpdate', {
-        ...message.payload,
-        status: 'transferring'
-      });
-    });
-  });
-
-  connectionManager.on(`message:${MessageType.FILE_TRANSFER_COMPLETE}`, (message) => {
-    BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send('file:transferUpdate', {
-        ...message.payload,
-        status: 'completed'
-      });
+      win.webContents.send('file:transferUpdate', transfer);
     });
   });
 

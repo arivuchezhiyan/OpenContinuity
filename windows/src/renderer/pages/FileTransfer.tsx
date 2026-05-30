@@ -223,6 +223,14 @@ function FileTransfer() {
                               >
                                 Open
                               </button>
+                              {transfer.direction === 'receive' && (
+                                <button
+                                  onClick={() => window.api.file.saveAs(transfer.id)}
+                                  className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors"
+                                >
+                                  Save As...
+                                </button>
+                              )}
                               <button
                                 onClick={() => window.api.file.showInFolder(transfer.id)}
                                 title="Show in Folder"

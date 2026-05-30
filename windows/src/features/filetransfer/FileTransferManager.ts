@@ -406,4 +406,25 @@ export class FileTransferManager extends EventEmitter {
       shell.showItemInFolder(transfer.localPath);
     }
   }
+
+  async saveAs(transferId: string): Promise<boolean> {
+    const transfer = this.transfers.get(transferId);
+    if (!transfer?.localPath || !fs.existsSync(transfer.localPath)) return false;
+    
+    // Create correct dialog reference
+    const win = BrowserWindow.getAllWindows()[0];
+    const result = await dialog.showSaveDialog(win, {
+      defaultPath: transfer.fileName
+    });
+    
+    if (result.canceled || !result.filePath) return false;
+    
+    try {
+      fs.copyFileSync(transfer.localPath, result.filePath);
+      return true;
+    } catch (e) {
+      console.error('Failed to save file:', e);
+      return false;
+    }
+  }
 }

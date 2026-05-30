@@ -40,6 +40,7 @@ contextBridge.exposeInMainWorld('api', {
     openDownloadFolder: () => ipcRenderer.invoke('file:openDownloadFolder'),
     open: (transferId: string) => ipcRenderer.invoke('file:open', transferId),
     showInFolder: (transferId: string) => ipcRenderer.invoke('file:showInFolder', transferId),
+    saveAs: (transferId: string) => ipcRenderer.invoke('file:saveAs', transferId),
   },
 
   // ==================== SMS ====================

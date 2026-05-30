@@ -37,6 +37,8 @@ class FileTransferManager(
     val activeTransfers: StateFlow<List<FileTransfer>> = _activeTransfers.asStateFlow()
 
     private val pendingTransfers = ConcurrentHashMap<String, PendingTransfer>()
+    private val incomingStreams = ConcurrentHashMap<String, FileOutputStream>()
+    private val incomingFiles = ConcurrentHashMap<String, File>()
 
     // Download directory
     private val downloadDir: File by lazy {
@@ -57,6 +59,18 @@ class FileTransferManager(
 
         connectionManager.registerHandler(MessageType.FILE_TRANSFER_REJECT) { sessionId, message ->
             handleTransferRejected(message)
+        }
+
+        connectionManager.registerHandler(MessageType.FILE_CHUNK) { sessionId, message ->
+            handleFileChunk(message)
+        }
+
+        connectionManager.registerHandler(MessageType.FILE_TRANSFER_COMPLETE) { sessionId, message ->
+            handleTransferComplete(message)
+        }
+
+        connectionManager.registerHandler(MessageType.FILE_TRANSFER_ERROR) { sessionId, message ->
+            handleTransferError(message)
         }
 
         Log.i(TAG, "File transfer manager started")
@@ -133,7 +147,8 @@ class FileTransferManager(
             fileSize = request.fileSize,
             direction = TransferDirection.INCOMING,
             status = TransferStatus.PENDING,
-            progress = 0f
+            progress = 0f,
+            localPath = File(downloadDir, request.fileName).absolutePath // Initial assumption
         )
 
         updateTransfer(transfer)
@@ -270,6 +285,105 @@ class FileTransferManager(
         pendingTransfers.remove(transferId)
     }
 
+    private fun handleFileChunk(message: ProtocolMessage) {
+        val payload = protocolJson.decodeFromJsonElement<FileChunkPayload>(message.payload)
+        val transferId = payload.transferId
+        
+        val transfer = _activeTransfers.value.find { it.id == transferId } ?: return
+        
+        // Open or get output stream
+        if (!incomingStreams.containsKey(transferId)) {
+            // Find destination file
+            var file = File(downloadDir, transfer.fileName)
+            var counter = 1
+            while (file.exists()) {
+                val nameWithoutExt = transfer.fileName.substringBeforeLast(".")
+                val ext = if (transfer.fileName.contains(".")) ".${transfer.fileName.substringAfterLast(".")}" else ""
+                file = File(downloadDir, "$nameWithoutExt ($counter)$ext")
+                counter++
+            }
+            incomingFiles[transferId] = file
+            try {
+                incomingStreams[transferId] = FileOutputStream(file, true)
+                // Update local path in the transfer state so we can find it later
+                updateTransferLocalPath(transferId, file.absolutePath)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to open output stream", e)
+                return
+            }
+        }
+
+        try {
+            val chunk = android.util.Base64.decode(payload.data, android.util.Base64.NO_WRAP)
+            
+            // Per-chunk integrity check
+            val digest = MessageDigest.getInstance("SHA-256")
+            val computedChecksumBytes = digest.digest(chunk)
+            val computedChecksum = computedChecksumBytes.joinToString("") { "%02x".format(it) }
+            
+            if (computedChecksum != payload.checksum) {
+                Log.e(TAG, "Chunk checksum mismatch on chunk ${payload.sequence}")
+                updateTransferStatus(transferId, TransferStatus.FAILED)
+                cleanupIncomingTransfer(transferId)
+                return
+            }
+            
+            val outputStream = incomingStreams[transferId]
+            outputStream?.write(chunk)
+            
+            val newBytesTransferred = transfer.bytesTransferred + chunk.size
+            val newProgress = newBytesTransferred.toFloat() / transfer.fileSize
+            
+            updateTransferProgress(transferId, newProgress, newBytesTransferred)
+            updateTransferStatus(transferId, TransferStatus.IN_PROGRESS)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to process file chunk", e)
+            updateTransferStatus(transferId, TransferStatus.FAILED)
+            cleanupIncomingTransfer(transferId)
+        }
+    }
+
+    private fun handleTransferComplete(message: ProtocolMessage) {
+        val payload = protocolJson.decodeFromJsonElement<FileTransferCompletePayload>(message.payload)
+        val transferId = payload.transferId
+        
+        if (payload.success) {
+            val transfer = _activeTransfers.value.find { it.id == transferId }
+            if (transfer != null) {
+                updateTransferProgress(transferId, 1.0f, transfer.fileSize)
+                updateTransferStatus(transferId, TransferStatus.COMPLETED)
+            }
+            Log.i(TAG, "Transfer completed: $transferId")
+        } else {
+            updateTransferStatus(transferId, TransferStatus.FAILED)
+            Log.e(TAG, "Transfer failed: $transferId, error: ${payload.errorMessage}")
+        }
+        
+        cleanupIncomingTransfer(transferId)
+    }
+
+    private fun handleTransferError(message: ProtocolMessage) {
+        val payload = protocolJson.decodeFromJsonElement<FileTransferCompletePayload>(message.payload)
+        val transferId = payload.transferId
+        
+        updateTransferStatus(transferId, TransferStatus.FAILED)
+        Log.e(TAG, "Transfer error: $transferId, error: ${payload.errorMessage}")
+        
+        cleanupIncomingTransfer(transferId)
+    }
+
+    private fun cleanupIncomingTransfer(transferId: String) {
+        try {
+            incomingStreams[transferId]?.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to close input stream", e)
+        } finally {
+            incomingStreams.remove(transferId)
+            incomingFiles.remove(transferId)
+        }
+    }
+
     private fun getFileInfo(uri: Uri): FileInfo? {
         return try {
             context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
@@ -337,6 +451,36 @@ class FileTransferManager(
             _activeTransfers.value = list
         }
     }
+
+    private fun updateTransferLocalPath(transferId: String, localPath: String) {
+        val list = _activeTransfers.value.toMutableList()
+        val index = list.indexOfFirst { it.id == transferId }
+        if (index >= 0) {
+            list[index] = list[index].copy(
+                localPath = localPath
+            )
+            _activeTransfers.value = list
+        }
+    }
+
+    suspend fun saveToUri(transferId: String, destUri: Uri): Boolean = withContext(Dispatchers.IO) {
+        val transfer = _activeTransfers.value.find { it.id == transferId } ?: return@withContext false
+        val path = transfer.localPath ?: return@withContext false
+        val file = File(path)
+        if (!file.exists()) return@withContext false
+        
+        try {
+            context.contentResolver.openOutputStream(destUri)?.use { outStream ->
+                file.inputStream().use { inStream ->
+                    inStream.copyTo(outStream)
+                }
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save file to $destUri", e)
+            false
+        }
+    }
 }
 
 data class FileInfo(
@@ -352,7 +496,8 @@ data class FileTransfer(
     val direction: TransferDirection,
     val status: TransferStatus,
     val progress: Float,
-    val bytesTransferred: Long = 0
+    val bytesTransferred: Long = 0,
+    val localPath: String? = null
 )
 
 enum class TransferDirection {
