@@ -1,22 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#6750A4</color>
-    <color name="on_primary">#FFFFFF</color>
-    <color name="primary_container">#EADDFF</color>
-    <color name="on_primary_container">#21005D</color>
-    <color name="secondary">#625B71</color>
-    <color name="on_secondary">#FFFFFF</color>
-    <color name="secondary_container">#E8DEF8</color>
-    <color name="on_secondary_container">#1D192B</color>
-    <color name="tertiary">#7D5260</color>
-    <color name="on_tertiary">#FFFFFF</color>
-    <color name="background">#FFFBFE</color>
-    <color name="on_background">#1C1B1F</color>
-    <color name="surface">#FFFBFE</color>
-    <color name="on_surface">#1C1B1F</color>
-    <color name="error">#B3261E</color>
-    <color name="on_error">#FFFFFF</color>
-    <color name="success">#4CAF50</color>
-    <color name="warning">#FF9800</color>
-    <color name="ic_launcher_background">#1976D2</color>
+    <!-- Ethereal Noir — Rosy Glassmorphism Palette -->
+    <!-- Background / Surface -->
+    <color name="background">#050207</color>
+    <color name="surface">#1C1013</color>
+    <color name="surface_dim">#1C1013</color>
+    <color name="surface_container_lowest">#170B0E</color>
+    <color name="surface_container_low">#25181C</color>
+    <color name="surface_container">#291C20</color>
+    <color name="surface_container_high">#35262A</color>
+    <color name="surface_container_highest">#403135</color>
+    <color name="surface_bright">#453539</color>
+    <color name="surface_variant">#403135</color>
+
+    <!-- Primary — Rose Pink -->
+    <color name="primary">#FFB1C8</color>
+    <color name="on_primary">#650032</color>
+    <color name="primary_container">#FF5A9B</color>
+    <color name="on_primary_container">#630032</color>
+    <color name="primary_fixed">#FFD9E2</color>
+    <color name="primary_fixed_dim">#FFB1C8</color>
+    <color name="on_primary_fixed">#3E001D</color>
+    <color name="on_primary_fixed_variant">#8E004A</color>
+    <color name="inverse_primary">#B31A62</color>
+
+    <!-- Secondary -->
+    <color name="secondary">#FFB0CE</color>
+    <color name="on_secondary">#63003B</color>
+    <color name="secondary_container">#8A1656</color>
+    <color name="on_secondary_container">#FF99C3</color>
+    <color name="secondary_fixed">#FFD9E5</color>
+    <color name="secondary_fixed_dim">#FFB0CE</color>
+    <color name="on_secondary_fixed">#3E0022</color>
+    <color name="on_secondary_fixed_variant">#871353</color>
+
+    <!-- Tertiary -->
+    <color name="tertiary">#FFB1C7</color>
+    <color name="on_tertiary">#650032</color>
+    <color name="tertiary_container">#F9619A</color>
+    <color name="on_tertiary_container">#630031</color>
+    <color name="tertiary_fixed">#FFD9E2</color>
+    <color name="tertiary_fixed_dim">#FFB1C7</color>
+    <color name="on_tertiary_fixed">#3E001C</color>
+    <color name="on_tertiary_fixed_variant">#8E0049</color>
+
+    <!-- On-Surface -->
+    <color name="on_background">#F5DCE1</color>
+    <color name="on_surface">#F5DCE1</color>
+    <color name="on_surface_variant">#DFBEC6</color>
+    <color name="inverse_surface">#F5DCE1</color>
+    <color name="inverse_on_surface">#3B2C30</color>
+
+    <!-- Outline -->
+    <color name="outline">#A68990</color>
+    <color name="outline_variant">#584047</color>
+
+    <!-- Error -->
+    <color name="error">#FFB4AB</color>
+    <color name="on_error">#690005</color>
+    <color name="error_container">#93000A</color>
+    <color name="on_error_container">#FFDAD6</color>
+
+    <!-- Utility -->
+    <color name="success">#4ADE80</color>
+    <color name="warning">#FBBF24</color>
+    <color name="hot_pink">#FF4F96</color>
+    <color name="deep_pink">#FF78B7</color>
+    <color name="ic_launcher_background">#4B0826</color>
 </resources>
