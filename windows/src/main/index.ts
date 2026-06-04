@@ -52,7 +52,8 @@ async function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
     },
     show: false,
-    frame: true,
+    frame: false,
+    fullscreen: true,
     backgroundColor: '#1a1a2e',
   });
 

@@ -26,10 +26,6 @@ function Layout() {
     return () => unlisten?.();
   }, [navigate]);
 
-  const handleMinimize = () => window.api.window.minimize();
-  const handleMaximize = () => window.api.window.maximize();
-  const handleClose = () => window.api.window.close();
-
   const getStatusColor = () => {
     switch (connectionState.status) {
       case 'connected': return 'status-connected';
@@ -70,27 +66,6 @@ function Layout() {
               {batteryStatus.isCharging && <span className="text-primary">⚡</span>}
             </div>
           )}
-
-          <div className="titlebar-no-drag flex items-center">
-            <button
-              onClick={handleMinimize}
-              className="p-2 rounded-md hover:bg-white/5 transition-colors duration-200"
-            >
-              <span className="material-symbols-outlined text-on-surface-variant text-sm">remove</span>
-            </button>
-            <button
-              onClick={handleMaximize}
-              className="p-2 rounded-md hover:bg-white/5 transition-colors duration-200"
-            >
-              <span className="material-symbols-outlined text-on-surface-variant text-sm">crop_square</span>
-            </button>
-            <button
-              onClick={handleClose}
-              className="p-2 rounded-md hover:bg-error/20 transition-colors duration-200 group"
-            >
-              <span className="material-symbols-outlined text-on-surface-variant group-hover:text-error text-sm">close</span>
-            </button>
-          </div>
         </div>
       </div>
 
