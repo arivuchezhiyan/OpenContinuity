@@ -1,18 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import {
-  Cog6ToothIcon,
-  MoonIcon,
-  SunIcon,
-  ComputerDesktopIcon,
-  ClipboardDocumentIcon,
-  BellIcon,
-  ChatBubbleLeftRightIcon,
-  PhotoIcon,
-  FolderIcon,
-  ShieldCheckIcon,
-  InformationCircleIcon
-} from '@heroicons/react/24/outline';
 
 interface SettingsState {
   autoStart: boolean;
@@ -63,165 +50,209 @@ function Settings() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
-          Configure OpenContinuity preferences
-        </p>
+    <div className="space-y-8 animate-fade-in max-w-3xl font-inter">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-headline-xl text-on-surface tracking-tight mb-1">Settings</h1>
+          <p className="text-body-md text-on-surface-variant">
+            Manage your OpenContinuity preferences and configurations.
+          </p>
+        </div>
+        <button className="btn-primary px-6 py-2.5 text-label-md">
+          Save Changes
+        </button>
       </div>
 
-      {/* Appearance */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          <SunIcon className="w-5 h-5" />
-          Appearance
-        </h2>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Theme
-          </label>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setTheme('light')}
-              className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                theme === 'light'
-                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
-            >
-              <SunIcon className="w-5 h-5" />
-              <span className="text-sm font-medium">Light</span>
-            </button>
-            <button
-              onClick={() => setTheme('dark')}
-              className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                theme === 'dark'
-                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
-            >
-              <MoonIcon className="w-5 h-5" />
-              <span className="text-sm font-medium">Dark</span>
-            </button>
-            <button
-              onClick={() => setTheme('system')}
-              className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                theme === 'system'
-                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
-            >
-              <ComputerDesktopIcon className="w-5 h-5" />
-              <span className="text-sm font-medium">System</span>
-            </button>
+      <div className="space-y-6">
+        {/* Section 1: Appearance */}
+        <section className="glass-panel p-6 flex flex-col gap-4 relative overflow-hidden group">
+          {/* Decorative hover glow */}
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          
+          <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+            <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-primary">
+              <span className="material-symbols-outlined">palette</span>
+            </div>
+            <h2 className="text-headline-md text-on-surface">Appearance</h2>
           </div>
-        </div>
-      </div>
 
-      {/* General */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          <Cog6ToothIcon className="w-5 h-5" />
-          General
-        </h2>
+          <div>
+            <label className="block text-label-md text-on-surface-variant mb-3">
+              System Theme
+            </label>
+            <div className="glass-panel !rounded-xl p-1 flex relative">
+              {/* Selected background pill */}
+              <div 
+                className="absolute inset-y-1 bg-primary/20 rounded-lg border border-primary/30 z-0 transition-all duration-300"
+                style={{
+                  width: 'calc(33.33% - 4px)',
+                  left: theme === 'dark' ? '4px' : theme === 'light' ? 'calc(33.33% + 2px)' : 'calc(66.66%)',
+                }}
+              />
+              <button
+                onClick={() => setTheme('dark')}
+                className={`flex-1 py-2.5 text-label-md z-10 text-center flex flex-col items-center gap-1 transition-colors ${
+                  theme === 'dark' ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                <span className="material-symbols-outlined text-xl">dark_mode</span>
+                Dark
+              </button>
+              <button
+                onClick={() => setTheme('light')}
+                className={`flex-1 py-2.5 text-label-md z-10 text-center flex flex-col items-center gap-1 transition-colors ${
+                  theme === 'light' ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                <span className="material-symbols-outlined text-xl">light_mode</span>
+                Light
+              </button>
+              <button
+                onClick={() => setTheme('system')}
+                className={`flex-1 py-2.5 text-label-md z-10 text-center flex flex-col items-center gap-1 transition-colors ${
+                  theme === 'system' ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                <span className="material-symbols-outlined text-xl">settings_suggest</span>
+                Auto
+              </button>
+            </div>
+          </div>
+        </section>
 
-        <div className="space-y-4">
-          <ToggleSetting
-            label="Start on Windows login"
-            description="Automatically start OpenContinuity when you sign in"
-            checked={settings.autoStart}
-            onChange={(checked) => updateSetting('autoStart', checked)}
-          />
-          <ToggleSetting
-            label="Minimize to system tray"
-            description="Keep running in the background when you close the window"
-            checked={settings.minimizeToTray}
-            onChange={(checked) => updateSetting('minimizeToTray', checked)}
-          />
-        </div>
-      </div>
+        {/* Section 2: General */}
+        <section className="glass-panel p-6 flex flex-col gap-4 relative overflow-hidden group">
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-secondary/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          
+          <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+            <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-secondary">
+              <span className="material-symbols-outlined">tune</span>
+            </div>
+            <h2 className="text-headline-md text-on-surface">General Configuration</h2>
+          </div>
 
-      {/* Sync Features */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          <ShieldCheckIcon className="w-5 h-5" />
-          Sync Features
-        </h2>
-
-        <div className="space-y-4">
-          <ToggleSetting
-            label="Clipboard Sync"
-            description="Automatically sync clipboard content between devices"
-            icon={ClipboardDocumentIcon}
-            checked={settings.clipboardSync}
-            onChange={(checked) => updateSetting('clipboardSync', checked)}
-          />
-          <ToggleSetting
-            label="Notification Sync"
-            description="Show phone notifications on this PC"
-            icon={BellIcon}
-            checked={settings.notificationSync}
-            onChange={(checked) => updateSetting('notificationSync', checked)}
-          />
-          <ToggleSetting
-            label="SMS Sync"
-            description="Send and receive SMS from this PC"
-            icon={ChatBubbleLeftRightIcon}
-            checked={settings.smsSync}
-            onChange={(checked) => updateSetting('smsSync', checked)}
-          />
-          <ToggleSetting
-            label="Screenshot Sync"
-            description="Automatically receive screenshots from your phone"
-            icon={PhotoIcon}
-            checked={settings.screenshotSync}
-            onChange={(checked) => updateSetting('screenshotSync', checked)}
-          />
-        </div>
-      </div>
-
-      {/* File Transfer */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          <FolderIcon className="w-5 h-5" />
-          File Transfer
-        </h2>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Download Location
-          </label>
-          <div className="flex gap-3">
-            <input
-              type="text"
-              value={settings.downloadPath || 'Downloads/OpenContinuity'}
-              readOnly
-              className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300"
+          <div className="space-y-1">
+            <ToggleSetting
+              label="Start on Windows login"
+              description="Automatically start OpenContinuity when you sign in"
+              checked={settings.autoStart}
+              onChange={(checked) => updateSetting('autoStart', checked)}
             />
-            <button
-              onClick={selectDownloadPath}
-              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
-            >
-              Browse...
-            </button>
+            <ToggleSetting
+              label="Minimize to system tray"
+              description="Keep running in the background when you close the window"
+              checked={settings.minimizeToTray}
+              onChange={(checked) => updateSetting('minimizeToTray', checked)}
+            />
           </div>
-        </div>
-      </div>
+        </section>
 
-      {/* About */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          <InformationCircleIcon className="w-5 h-5" />
-          About
-        </h2>
+        {/* Section 3: Sync Features */}
+        <section className="glass-panel p-6 flex flex-col gap-4 relative overflow-hidden group">
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-tertiary/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          
+          <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+            <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-tertiary">
+              <span className="material-symbols-outlined">sync_lock</span>
+            </div>
+            <h2 className="text-headline-md text-on-surface">Sync & Security</h2>
+          </div>
 
-        <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-          <p><span className="font-medium">OpenContinuity</span> v1.0.0</p>
-          <p>Windows ↔ Android Ecosystem Integration</p>
-          <p className="text-gray-400">© 2024 OpenContinuity</p>
-        </div>
+          {/* Sync status card */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+            <div className="flex items-start gap-3">
+              <span className="material-symbols-outlined text-tertiary mt-0.5">cloud_sync</span>
+              <div>
+                <h3 className="text-label-md text-on-surface">Real-time Node Synchronization</h3>
+                <p className="text-body-md text-on-surface-variant text-sm mt-0.5">Maintain continuous connection with enterprise grid.</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  <span className="text-[11px] text-primary font-medium tracking-wide uppercase">Active Connection</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <ToggleSetting
+              label="Clipboard Sync"
+              description="Automatically sync clipboard content between devices"
+              icon="content_copy"
+              checked={settings.clipboardSync}
+              onChange={(checked) => updateSetting('clipboardSync', checked)}
+            />
+            <ToggleSetting
+              label="Notification Sync"
+              description="Show phone notifications on this PC"
+              icon="notifications"
+              checked={settings.notificationSync}
+              onChange={(checked) => updateSetting('notificationSync', checked)}
+            />
+            <ToggleSetting
+              label="SMS Sync"
+              description="Send and receive SMS from this PC"
+              icon="chat"
+              checked={settings.smsSync}
+              onChange={(checked) => updateSetting('smsSync', checked)}
+            />
+            <ToggleSetting
+              label="Screenshot Sync"
+              description="Automatically receive screenshots from your phone"
+              icon="screenshot_monitor"
+              checked={settings.screenshotSync}
+              onChange={(checked) => updateSetting('screenshotSync', checked)}
+            />
+          </div>
+        </section>
+
+        {/* Section 4: File Transfer */}
+        <section className="glass-panel p-6 flex flex-col gap-4 relative overflow-hidden group">
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          
+          <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+            <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-primary">
+              <span className="material-symbols-outlined">folder</span>
+            </div>
+            <h2 className="text-headline-md text-on-surface">File Transfer</h2>
+          </div>
+
+          <div>
+            <label className="block text-label-md text-on-surface-variant mb-2">
+              Download Location
+            </label>
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={settings.downloadPath || 'Downloads/OpenContinuity'}
+                readOnly
+                className="flex-1 px-4 py-3 glass-input text-body-md cursor-default"
+              />
+              <button
+                onClick={selectDownloadPath}
+                className="btn-secondary px-4 py-2.5 text-label-md"
+              >
+                Browse...
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 5: About */}
+        <section className="glass-panel p-6 flex flex-col gap-4">
+          <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+            <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-on-surface-variant">
+              <span className="material-symbols-outlined">info</span>
+            </div>
+            <h2 className="text-headline-md text-on-surface">About</h2>
+          </div>
+
+          <div className="space-y-2 text-sm">
+            <p className="text-on-surface"><span className="font-semibold text-primary">OpenContinuity</span> v1.0.0</p>
+            <p className="text-on-surface-variant">Windows ↔ Android Ecosystem Integration</p>
+            <p className="text-on-surface-variant/50">© 2024 OpenContinuity</p>
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -232,28 +263,34 @@ interface ToggleSettingProps {
   description: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: string;
 }
 
-function ToggleSetting({ label, description, checked, onChange, icon: Icon }: ToggleSettingProps) {
+function ToggleSetting({ label, description, checked, onChange, icon }: ToggleSettingProps) {
   return (
-    <div className="flex items-center justify-between py-2">
+    <div className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors duration-200 group">
       <div className="flex items-center gap-3">
-        {Icon && <Icon className="w-5 h-5 text-gray-400" />}
+        {icon && (
+          <span className="material-symbols-outlined text-on-surface-variant text-xl">{icon}</span>
+        )}
         <div>
-          <p className="font-medium text-gray-900 dark:text-white">{label}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{description}</p>
+          <p className="text-label-md text-on-surface group-hover:text-primary transition-colors">{label}</p>
+          <p className="text-label-sm text-on-surface-variant font-normal mt-0.5">{description}</p>
         </div>
       </div>
       <button
         onClick={() => onChange(!checked)}
-        className={`relative w-11 h-6 rounded-full transition-colors ${
-          checked ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
+        className={`relative w-11 h-6 rounded-full transition-all duration-300 ${
+          checked 
+            ? 'bg-primary-container shadow-[0_0_10px_rgba(16,185,129,0.3)]' 
+            : 'bg-surface-container border border-white/10'
         }`}
       >
         <span
-          className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-            checked ? 'translate-x-5' : ''
+          className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-all duration-300 ${
+            checked 
+              ? 'translate-x-5 bg-white' 
+              : 'bg-on-surface-variant/50'
           }`}
         />
       </button>

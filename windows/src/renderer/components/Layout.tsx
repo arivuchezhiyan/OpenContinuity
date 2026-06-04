@@ -1,31 +1,16 @@
 import React from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useConnection } from '../contexts/ConnectionContext';
-import {
-  HomeIcon,
-  QrCodeIcon,
-  FolderIcon,
-  ChatBubbleLeftIcon,
-  BellIcon,
-  TvIcon,
-  Cog6ToothIcon,
-  WifiIcon,
-  Battery100Icon,
-  MinusIcon,
-  Square2StackIcon,
-  XMarkIcon,
-  PencilSquareIcon
-} from '@heroicons/react/24/outline';
 
 const navItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: HomeIcon },
-  { path: '/pairing', label: 'Pairing', icon: QrCodeIcon },
-  { path: '/files', label: 'Files', icon: FolderIcon },
-  { path: '/sms', label: 'SMS', icon: ChatBubbleLeftIcon },
-  { path: '/notifications', label: 'Notifications', icon: BellIcon },
-  { path: '/notes', label: 'Note Maker', icon: PencilSquareIcon },
-  { path: '/screen-mirror', label: 'Screen Mirror', icon: TvIcon },
-  { path: '/settings', label: 'Settings', icon: Cog6ToothIcon }
+  { path: '/dashboard', label: 'Dashboard', icon: 'grid_view' },
+  { path: '/pairing', label: 'Pairing', icon: 'hub' },
+  { path: '/files', label: 'Files', icon: 'folder_shared' },
+  { path: '/sms', label: 'SMS', icon: 'chat' },
+  { path: '/notifications', label: 'Notifications', icon: 'notifications' },
+  { path: '/notes', label: 'Note Maker', icon: 'edit_note' },
+  { path: '/screen-mirror', label: 'Screen Mirror', icon: 'cast' },
+  { path: '/settings', label: 'Settings', icon: 'settings' }
 ];
 
 function Layout() {
@@ -47,100 +32,123 @@ function Layout() {
 
   const getStatusColor = () => {
     switch (connectionState.status) {
-      case 'connected': return 'bg-green-500';
-      case 'connecting': return 'bg-yellow-500 animate-pulse';
-      case 'error': return 'bg-red-500';
-      default: return 'bg-gray-400';
+      case 'connected': return 'status-connected';
+      case 'connecting': return 'status-connecting';
+      case 'error': return 'status-error';
+      default: return 'status-disconnected';
     }
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex flex-col h-screen bg-[#06141B] overflow-hidden">
+      {/* Ambient Background Orbs */}
+      <div className="ambient-orb orb-1" />
+      <div className="ambient-orb orb-2" />
+
       {/* Title Bar */}
-      <div className="titlebar-drag-region flex items-center justify-between h-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4">
+      <div className="titlebar-drag-region relative z-50 flex items-center justify-between h-10 bg-[#06141B]/80 backdrop-blur-xl border-b border-white/5 px-4">
         <div className="flex items-center gap-3">
-          <div className="text-lg font-semibold text-primary-600 dark:text-primary-400">
-            OpenContinuity
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined filled text-primary text-lg">hub</span>
+            <span className="text-sm font-semibold text-primary font-inter">OpenContinuity</span>
           </div>
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${getStatusColor()}`} />
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              {connectionState.status === 'connected' 
-                ? connectionState.deviceName 
+            <span className="text-xs text-on-surface-variant font-inter">
+              {connectionState.status === 'connected'
+                ? connectionState.deviceName
                 : connectionState.status}
             </span>
           </div>
         </div>
-        
-        <div className="flex items-center gap-4">
+
+        <div className="flex items-center gap-3">
           {batteryStatus && connectionState.status === 'connected' && (
-            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-              <Battery100Icon className="w-4 h-4" />
+            <div className="flex items-center gap-1.5 text-xs text-on-surface-variant font-inter">
+              <span className="material-symbols-outlined text-sm text-primary">battery_full</span>
               <span>{batteryStatus.level}%</span>
-              {batteryStatus.isCharging && <span>⚡</span>}
+              {batteryStatus.isCharging && <span className="text-primary">⚡</span>}
             </div>
           )}
-          
+
           <div className="titlebar-no-drag flex items-center">
             <button
               onClick={handleMinimize}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-2 rounded-md hover:bg-white/5 transition-colors duration-200"
             >
-              <MinusIcon className="w-4 h-4 text-gray-500" />
+              <span className="material-symbols-outlined text-on-surface-variant text-sm">remove</span>
             </button>
             <button
               onClick={handleMaximize}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-2 rounded-md hover:bg-white/5 transition-colors duration-200"
             >
-              <Square2StackIcon className="w-4 h-4 text-gray-500" />
+              <span className="material-symbols-outlined text-on-surface-variant text-sm">crop_square</span>
             </button>
             <button
               onClick={handleClose}
-              className="p-2 hover:bg-red-500 hover:text-white transition-colors"
+              className="p-2 rounded-md hover:bg-error/20 transition-colors duration-200 group"
             >
-              <XMarkIcon className="w-4 h-4 text-gray-500 hover:text-white" />
+              <span className="material-symbols-outlined text-on-surface-variant group-hover:text-error text-sm">close</span>
             </button>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <nav className="w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-          <div className="flex-1 py-4">
+      <div className="flex flex-1 overflow-hidden relative z-10">
+        {/* Sidebar — Glassmorphism floating panel */}
+        <nav className="w-60 flex flex-col my-3 ml-3 bg-white/[0.08] backdrop-blur-[40px] saturate-[180%] border border-white/[0.12] rounded-glass-sidebar shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+          {/* Logo */}
+          <div className="p-5 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-container/20 flex items-center justify-center border border-primary/30">
+              <span className="material-symbols-outlined filled text-primary">hub</span>
+            </div>
+            <div>
+              <h1 className="text-headline-md text-primary font-bold leading-tight font-inter text-lg">
+                OpenContinuity
+              </h1>
+              <p className="text-[11px] text-on-surface-variant opacity-70 uppercase tracking-wider font-semibold font-inter">
+                Enterprise Node
+              </p>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <div className="flex-1 px-2 py-1 space-y-[4px] overflow-y-auto">
             {navItems.map(item => (
               <NavLink
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 mx-2 rounded-lg transition-colors ${
+                  `flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 font-inter text-sm font-medium ${
                     isActive
-                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      ? 'text-primary bg-primary/10 border-r-4 border-primary shadow-[0_0_20px_rgba(16,185,129,0.15)]'
+                      : 'text-on-surface-variant opacity-70 hover:bg-white/5 hover:opacity-100 hover:translate-x-1'
                   }`
                 }
               >
-                <item.icon className="w-5 h-5" />
-                <span className="text-sm font-medium">{item.label}</span>
+                <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                <span>{item.label}</span>
               </NavLink>
             ))}
           </div>
 
           {/* Connection Status Card */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <WifiIcon className={`w-4 h-4 ${
-                  connectionState.status === 'connected' 
-                    ? 'text-green-500' 
-                    : 'text-gray-400'
-                }`} />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div className="p-3 border-t border-white/5">
+            <div className="p-3 rounded-xl bg-white/[0.05] border border-white/[0.08]">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className={`material-symbols-outlined text-sm ${
+                  connectionState.status === 'connected'
+                    ? 'text-primary'
+                    : 'text-on-surface-variant opacity-50'
+                }`}>
+                  wifi
+                </span>
+                <span className="text-sm font-medium text-on-surface font-inter">
                   {connectionState.status === 'connected' ? 'Connected' : 'Not Connected'}
                 </span>
               </div>
               {connectionState.deviceName && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                <p className="text-xs text-on-surface-variant truncate font-inter pl-6">
                   {connectionState.deviceName}
                 </p>
               )}
@@ -149,7 +157,7 @@ function Layout() {
         </nav>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-8">
           <Outlet />
         </main>
       </div>

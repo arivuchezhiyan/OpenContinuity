@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useConnection } from '../contexts/ConnectionContext';
-import {
-  ChatBubbleLeftRightIcon,
-  PaperAirplaneIcon,
-  MagnifyingGlassIcon
-} from '@heroicons/react/24/outline';
 
 interface Conversation {
   threadId: number;
@@ -131,34 +126,35 @@ function SMS() {
   const selectedConversation = conversations.find(c => c.threadId === selectedThread);
 
   return (
-    <div className="h-full flex flex-col animate-fade-in">
+    <div className="h-full flex flex-col animate-fade-in font-inter">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">SMS</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
+        <h1 className="text-headline-xl text-on-surface mb-2">SMS</h1>
+        <p className="text-body-lg text-on-surface-variant">
           Send and receive text messages from your PC
         </p>
       </div>
 
       {!isConnected ? (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6 text-center">
-          <p className="text-yellow-800 dark:text-yellow-200">
+        <div className="glass-panel p-8 text-center">
+          <span className="material-symbols-outlined text-primary/50 text-5xl mb-4 block">sms</span>
+          <p className="text-body-lg text-on-surface-variant">
             Please connect to a device first to access SMS
           </p>
         </div>
       ) : (
-        <div className="flex-1 flex bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="flex-1 flex glass-panel overflow-hidden">
           {/* Conversations List */}
-          <div className="w-80 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+          <div className="w-80 border-r border-white/[0.08] flex flex-col">
             {/* Search */}
-            <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+            <div className="p-3 border-b border-white/[0.08]">
               <div className="relative">
-                <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">search</span>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search conversations..."
-                  className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full pl-10 pr-4 py-2.5 glass-input text-body-md placeholder:text-on-surface-variant/40 rounded-xl"
                 />
               </div>
             </div>
@@ -166,42 +162,48 @@ function SMS() {
             {/* Conversation List */}
             <div className="flex-1 overflow-y-auto">
               {filteredConversations.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
-                  <ChatBubbleLeftRightIcon className="w-12 h-12 mx-auto mb-4" />
-                  <p>No conversations</p>
+                <div className="text-center py-12 text-on-surface-variant">
+                  <span className="material-symbols-outlined text-5xl mb-4 block opacity-30">chat</span>
+                  <p className="text-body-md">No conversations</p>
                 </div>
               ) : (
                 filteredConversations.map(conv => (
                   <button
                     key={conv.threadId}
                     onClick={() => handleSelectThread(conv.threadId)}
-                    className={`w-full p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                    className={`w-full p-3 text-left transition-all duration-200 ${
                       selectedThread === conv.threadId
-                        ? 'bg-primary-50 dark:bg-primary-900/30'
-                        : ''
+                        ? 'bg-primary/10 border-r-2 border-primary'
+                        : 'hover:bg-white/[0.05]'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary-600 dark:text-primary-400 font-medium">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        selectedThread === conv.threadId
+                          ? 'bg-primary/20 border border-primary/30'
+                          : 'bg-surface-variant border border-white/10'
+                      }`}>
+                        <span className={`text-sm font-bold ${
+                          selectedThread === conv.threadId ? 'text-primary' : 'text-on-surface-variant'
+                        }`}>
                           {conv.contactName.charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                          <h3 className="text-label-md text-on-surface font-semibold truncate">
                             {conv.contactName}
                           </h3>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-[11px] text-on-surface-variant">
                             {formatTime(conv.lastMessageTime)}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        <p className="text-label-sm text-on-surface-variant truncate font-normal">
                           {conv.lastMessage}
                         </p>
                       </div>
                       {conv.unreadCount > 0 && (
-                        <span className="w-5 h-5 bg-primary-500 text-white text-xs rounded-full flex items-center justify-center">
+                        <span className="w-5 h-5 bg-primary text-on-primary text-[10px] font-bold rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(16,185,129,0.4)]">
                           {conv.unreadCount}
                         </span>
                       )}
@@ -217,13 +219,20 @@ function SMS() {
             {selectedConversation ? (
               <>
                 {/* Header */}
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                  <h2 className="font-semibold text-gray-900 dark:text-white">
-                    {selectedConversation.contactName}
-                  </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {selectedConversation.address}
-                  </p>
+                <div className="p-4 border-b border-white/[0.08] flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                    <span className="text-sm font-bold text-primary">
+                      {selectedConversation.contactName.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <h2 className="text-label-md text-on-surface font-semibold">
+                      {selectedConversation.contactName}
+                    </h2>
+                    <p className="text-label-sm text-on-surface-variant">
+                      {selectedConversation.address}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Messages */}
@@ -234,17 +243,17 @@ function SMS() {
                       className={`flex ${message.type === 'outgoing' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[70%] px-4 py-2 rounded-2xl ${
+                        className={`max-w-[70%] px-4 py-2.5 ${
                           message.type === 'outgoing'
-                            ? 'bg-primary-500 text-white rounded-br-sm'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-sm'
+                            ? 'bg-primary-container text-white rounded-2xl rounded-br-md'
+                            : 'bg-white/[0.08] border border-white/[0.08] text-on-surface rounded-2xl rounded-bl-md'
                         }`}
                       >
-                        <p className="whitespace-pre-wrap break-words">{message.body}</p>
-                        <p className={`text-xs mt-1 ${
+                        <p className="whitespace-pre-wrap break-words text-body-md">{message.body}</p>
+                        <p className={`text-[10px] mt-1 ${
                           message.type === 'outgoing'
-                            ? 'text-primary-100'
-                            : 'text-gray-400'
+                            ? 'text-white/60'
+                            : 'text-on-surface-variant'
                         }`}>
                           {formatTime(message.date)}
                         </p>
@@ -255,7 +264,7 @@ function SMS() {
                 </div>
 
                 {/* Input */}
-                <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="p-4 border-t border-white/[0.08]">
                   <div className="flex gap-3">
                     <input
                       type="text"
@@ -263,23 +272,23 @@ function SMS() {
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                       placeholder="Type a message..."
-                      className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-primary-500"
+                      className="flex-1 px-5 py-2.5 glass-input rounded-full text-body-md placeholder:text-on-surface-variant/40"
                     />
                     <button
                       onClick={handleSendMessage}
                       disabled={!newMessage.trim()}
-                      className="w-10 h-10 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-400 text-white rounded-full flex items-center justify-center transition-colors"
+                      className="w-10 h-10 btn-primary rounded-full flex items-center justify-center disabled:opacity-30"
                     >
-                      <PaperAirplaneIcon className="w-5 h-5" />
+                      <span className="material-symbols-outlined text-lg">send</span>
                     </button>
                   </div>
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-400">
+              <div className="flex-1 flex items-center justify-center text-on-surface-variant">
                 <div className="text-center">
-                  <ChatBubbleLeftRightIcon className="w-16 h-16 mx-auto mb-4" />
-                  <p>Select a conversation to view messages</p>
+                  <span className="material-symbols-outlined text-6xl mb-4 block opacity-20">chat</span>
+                  <p className="text-body-lg">Select a conversation to view messages</p>
                 </div>
               </div>
             )}

@@ -1,14 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useConnection } from '../contexts/ConnectionContext';
-import {
-  TvIcon,
-  VideoCameraIcon,
-  PlayIcon,
-  StopIcon,
-  ArrowsPointingOutIcon,
-  CogIcon,
-  CursorArrowRaysIcon
-} from '@heroicons/react/24/outline';
 
 type StreamType = 'screen' | 'camera' | null;
 
@@ -93,17 +84,18 @@ function ScreenMirror() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8 animate-fade-in font-inter">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Screen Mirror</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
+        <h1 className="text-headline-xl text-on-surface mb-2">Screen Mirror</h1>
+        <p className="text-body-lg text-on-surface-variant">
           Mirror your phone screen or use it as a webcam
         </p>
       </div>
 
       {!isConnected ? (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6 text-center">
-          <p className="text-yellow-800 dark:text-yellow-200">
+        <div className="glass-panel p-8 text-center">
+          <span className="material-symbols-outlined text-primary/50 text-5xl mb-4 block">cast</span>
+          <p className="text-body-lg text-on-surface-variant">
             Please connect to a device first
           </p>
         </div>
@@ -111,33 +103,43 @@ function ScreenMirror() {
         <>
           {/* Stream Type Selection */}
           {!activeStream && (
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-gutter">
               <button
                 onClick={() => startStream('screen')}
-                className="p-8 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-primary-500 transition-all text-left group"
+                className="glass-card p-8 text-left group cursor-pointer"
               >
-                <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <TvIcon className="w-8 h-8 text-indigo-500" />
+                <div className="flex justify-between items-start mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-surface-dim to-surface-container border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <span className="material-symbols-outlined text-white text-3xl">cast</span>
+                  </div>
+                  <span className="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">
+                    arrow_forward
+                  </span>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                <h3 className="text-headline-md text-on-surface mb-2">
                   Screen Mirror
                 </h3>
-                <p className="text-gray-500 dark:text-gray-400">
+                <p className="text-body-md text-on-surface-variant">
                   Mirror your phone's screen to this PC. Control your phone remotely.
                 </p>
               </button>
 
               <button
                 onClick={() => startStream('camera')}
-                className="p-8 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-primary-500 transition-all text-left group"
+                className="glass-card p-8 text-left group cursor-pointer"
               >
-                <div className="w-16 h-16 bg-pink-100 dark:bg-pink-900 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <VideoCameraIcon className="w-8 h-8 text-pink-500" />
+                <div className="flex justify-between items-start mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-surface-dim to-surface-container border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <span className="material-symbols-outlined text-white text-3xl">videocam</span>
+                  </div>
+                  <span className="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">
+                    arrow_forward
+                  </span>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                <h3 className="text-headline-md text-on-surface mb-2">
                   Phone as Webcam
                 </h3>
-                <p className="text-gray-500 dark:text-gray-400">
+                <p className="text-body-md text-on-surface-variant">
                   Use your phone's camera as a webcam for video calls and streaming.
                 </p>
               </button>
@@ -146,9 +148,9 @@ function ScreenMirror() {
 
           {/* Active Stream */}
           {activeStream && (
-            <div ref={containerRef} className="relative bg-black rounded-xl overflow-hidden">
+            <div ref={containerRef} className="relative glass-panel overflow-hidden !rounded-2xl">
               {/* Video Display */}
-              <div className="aspect-video flex items-center justify-center">
+              <div className="aspect-video flex items-center justify-center bg-[#030a10]">
                 <video
                   ref={videoRef}
                   className="max-w-full max-h-full"
@@ -157,14 +159,12 @@ function ScreenMirror() {
                 />
                 {/* Placeholder when no frames */}
                 {!videoRef.current?.src && (
-                  <div className="absolute inset-0 flex items-center justify-center text-white">
+                  <div className="absolute inset-0 flex items-center justify-center text-on-surface">
                     <div className="text-center">
-                      {activeStream === 'screen' ? (
-                        <TvIcon className="w-16 h-16 mx-auto mb-4 animate-pulse" />
-                      ) : (
-                        <VideoCameraIcon className="w-16 h-16 mx-auto mb-4 animate-pulse" />
-                      )}
-                      <p>Waiting for stream...</p>
+                      <span className="material-symbols-outlined text-6xl mb-4 block text-primary animate-pulse">
+                        {activeStream === 'screen' ? 'cast' : 'videocam'}
+                      </span>
+                      <p className="text-body-lg text-on-surface-variant">Waiting for stream...</p>
                     </div>
                   </div>
                 )}
@@ -173,42 +173,44 @@ function ScreenMirror() {
               {/* Controls Overlay */}
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-white text-sm">
+                  <div className="flex items-center gap-3">
+                    <span className="text-on-surface text-label-md">
                       {activeStream === 'screen' ? 'Screen Mirror' : 'Camera Webcam'}
                     </span>
-                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                    <span className="text-white/60 text-sm">Live</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 bg-error rounded-full animate-pulse" />
+                      <span className="text-on-surface-variant text-label-sm">Live</span>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     {activeStream === 'screen' && (
                       <button
                         onClick={() => setShowTouchpad(!showTouchpad)}
-                        className={`p-2 rounded-lg transition-colors ${
+                        className={`p-2 rounded-lg transition-all duration-200 ${
                           showTouchpad
-                            ? 'bg-primary-500 text-white'
+                            ? 'bg-primary text-on-primary'
                             : 'bg-white/20 text-white hover:bg-white/30'
                         }`}
                         title="Toggle Touchpad"
                       >
-                        <CursorArrowRaysIcon className="w-5 h-5" />
+                        <span className="material-symbols-outlined text-lg">touch_app</span>
                       </button>
                     )}
                     
                     <button
                       onClick={toggleFullscreen}
-                      className="p-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+                      className="p-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors duration-200"
                       title="Fullscreen"
                     >
-                      <ArrowsPointingOutIcon className="w-5 h-5" />
+                      <span className="material-symbols-outlined text-lg">fullscreen</span>
                     </button>
 
                     <button
                       onClick={stopStream}
-                      className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center gap-2"
+                      className="px-4 py-2 bg-error hover:bg-error/80 text-white rounded-glass-btn transition-all duration-200 flex items-center gap-2 text-label-md"
                     >
-                      <StopIcon className="w-5 h-5" />
+                      <span className="material-symbols-outlined text-lg">stop</span>
                       Stop
                     </button>
                   </div>
@@ -227,15 +229,15 @@ function ScreenMirror() {
           )}
 
           {/* Settings */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="glass-panel p-6">
             <div className="flex items-center gap-3 mb-4">
-              <CogIcon className="w-5 h-5 text-gray-400" />
-              <h3 className="font-semibold text-gray-900 dark:text-white">Stream Settings</h3>
+              <span className="material-symbols-outlined text-on-surface-variant">settings</span>
+              <h3 className="text-headline-md text-on-surface">Stream Settings</h3>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-label-md text-on-surface-variant mb-3">
                   Stream Quality
                 </label>
                 <div className="flex gap-2">
@@ -243,17 +245,17 @@ function ScreenMirror() {
                     <button
                       key={quality}
                       onClick={() => setStreamQuality(quality)}
-                      className={`px-4 py-2 rounded-lg capitalize transition-colors ${
+                      className={`px-5 py-2.5 rounded-glass-btn capitalize text-label-md transition-all duration-300 ${
                         streamQuality === quality
-                          ? 'bg-primary-500 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          ? 'btn-primary'
+                          : 'btn-secondary'
                       }`}
                     >
                       {quality}
                     </button>
                   ))}
                 </div>
-                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                <p className="mt-2 text-label-sm text-on-surface-variant">
                   Lower quality uses less bandwidth and reduces latency
                 </p>
               </div>

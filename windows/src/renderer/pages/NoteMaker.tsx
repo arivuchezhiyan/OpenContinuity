@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { FiEdit3, FiMaximize, FiMinimize, FiTrash2 } from 'react-icons/fi';
 
 interface NotePoint {
   x: number;
@@ -122,8 +121,8 @@ export default function NoteMaker() {
 
   const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number, offsetX: number, offsetY: number, scale: number) => {
     const gridSize = 50;
-    const scaledGridSize = gridSize; // keep grid visual size constant or scale it
-    ctx.strokeStyle = '#e2e8f015'; // Very faint grid lines
+    const scaledGridSize = gridSize;
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.05)';
     ctx.lineWidth = 1 / scale;
 
     const startX = -offsetX / scale - width / scale;
@@ -144,26 +143,44 @@ export default function NoteMaker() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 overflow-hidden relative">
-      <div className="absolute top-4 right-4 z-10 flex gap-2 bg-slate-800 p-2 rounded-xl border border-slate-700 shadow-xl">
+    <div className="flex flex-col h-full bg-[#06141B] overflow-hidden relative font-inter">
+      {/* Top-right toolbar */}
+      <div className="absolute top-4 right-4 z-10 flex gap-2 glass-panel !rounded-xl p-1.5">
         <button 
           onClick={() => setStrokes([])}
-          className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors"
+          className="p-2.5 rounded-lg hover:bg-white/10 text-on-surface-variant hover:text-error transition-colors duration-200"
           title="Clear Board"
         >
-          <FiTrash2 size={20} />
+          <span className="material-symbols-outlined text-xl">delete</span>
         </button>
         <button 
           onClick={() => setOffset({x:0, y:0})}
-          className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors"
+          className="p-2.5 rounded-lg hover:bg-white/10 text-on-surface-variant hover:text-primary transition-colors duration-200"
           title="Reset View"
         >
-          <FiMaximize size={20} />
+          <span className="material-symbols-outlined text-xl">fit_screen</span>
         </button>
       </div>
 
-      <div className="absolute bottom-4 left-4 z-10 bg-slate-800 px-4 py-2 rounded-xl border border-slate-700 shadow-xl text-slate-400 text-sm">
-        Use your mobile device to draw, pan, and zoom.
+      {/* Bottom-left info */}
+      <div className="absolute bottom-4 left-4 z-10 glass-panel !rounded-xl px-5 py-2.5 flex items-center gap-3">
+        <span className="material-symbols-outlined text-primary text-lg">draw</span>
+        <span className="text-label-md text-on-surface-variant">
+          Use your mobile device to draw, pan, and zoom.
+        </span>
+      </div>
+
+      {/* Bottom-right zoom controls */}
+      <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
+        <div className="glass-panel !rounded-lg px-2 py-1 flex items-center justify-between">
+          <button className="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-white/10 rounded-md transition-colors">
+            <span className="material-symbols-outlined text-lg">remove</span>
+          </button>
+          <span className="text-label-sm text-on-surface font-medium w-12 text-center">{Math.round(scale * 100)}%</span>
+          <button className="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-white/10 rounded-md transition-colors">
+            <span className="material-symbols-outlined text-lg">add</span>
+          </button>
+        </div>
       </div>
 
       <div ref={containerRef} className="flex-1 w-full h-full cursor-crosshair">

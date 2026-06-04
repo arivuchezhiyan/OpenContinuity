@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useConnection } from '../contexts/ConnectionContext';
-import {
-  BellIcon,
-  XMarkIcon,
-  TrashIcon
-} from '@heroicons/react/24/outline';
 
 interface Notification {
   id: string;
@@ -90,38 +85,39 @@ function Notifications() {
   }, {} as Record<string, Notification[]>);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8 animate-fade-in font-inter">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Notifications</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
+          <h1 className="text-headline-xl text-on-surface mb-2">Notifications</h1>
+          <p className="text-body-lg text-on-surface-variant">
             View notifications from your phone
           </p>
         </div>
         {notifications.length > 0 && (
           <button
             onClick={handleClearAll}
-            className="flex items-center gap-2 px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-glass-btn text-error hover:bg-error/10 border border-error/20 transition-all duration-300 text-label-md"
           >
-            <TrashIcon className="w-5 h-5" />
+            <span className="material-symbols-outlined text-lg">delete_sweep</span>
             Clear All
           </button>
         )}
       </div>
 
       {!isConnected ? (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6 text-center">
-          <p className="text-yellow-800 dark:text-yellow-200">
+        <div className="glass-panel p-8 text-center">
+          <span className="material-symbols-outlined text-primary/50 text-5xl mb-4 block">notifications_off</span>
+          <p className="text-body-lg text-on-surface-variant">
             Please connect to a device first to view notifications
           </p>
         </div>
       ) : notifications.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center">
-          <BellIcon className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+        <div className="glass-panel p-12 text-center">
+          <span className="material-symbols-outlined text-on-surface-variant/20 text-6xl mb-4 block">notifications</span>
+          <h3 className="text-headline-md text-on-surface mb-2">
             No notifications
           </h3>
-          <p className="text-gray-500 dark:text-gray-400">
+          <p className="text-body-md text-on-surface-variant">
             Notifications from your phone will appear here
           </p>
         </div>
@@ -129,18 +125,18 @@ function Notifications() {
         <div className="space-y-6">
           {Object.entries(groupedNotifications).map(([date, notifs]) => (
             <div key={date}>
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+              <h3 className="text-label-sm text-on-surface-variant mb-3 uppercase tracking-wider">
                 {date === new Date().toDateString() ? 'Today' : date}
               </h3>
               <div className="space-y-3">
                 {notifs.map(notification => (
                   <div
                     key={notification.id}
-                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-primary-500 transition-all group"
+                    className="glass-card p-4 hover:translate-y-0 hover:border-primary/30 group"
                   >
                     <div className="flex items-start gap-4">
                       {/* App Icon */}
-                      <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <div className="w-10 h-10 rounded-lg bg-surface-variant border border-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {notification.iconBase64 ? (
                           <img
                             src={`data:image/png;base64,${notification.iconBase64}`}
@@ -148,24 +144,24 @@ function Notifications() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <BellIcon className="w-5 h-5 text-gray-400" />
+                          <span className="material-symbols-outlined text-on-surface-variant text-lg">notifications</span>
                         )}
                       </div>
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-medium text-primary-500 uppercase">
+                          <span className="text-label-sm text-primary uppercase tracking-wider">
                             {notification.appName}
                           </span>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-[11px] text-on-surface-variant">
                             {formatTime(notification.timestamp)}
                           </span>
                         </div>
-                        <h4 className="font-medium text-gray-900 dark:text-white">
+                        <h4 className="text-label-md text-on-surface font-semibold">
                           {notification.title}
                         </h4>
-                        <p className="text-gray-600 dark:text-gray-300 text-sm mt-1 line-clamp-2">
+                        <p className="text-body-md text-on-surface-variant text-sm mt-1 line-clamp-2">
                           {notification.text}
                         </p>
                       </div>
@@ -173,9 +169,9 @@ function Notifications() {
                       {/* Dismiss Button */}
                       <button
                         onClick={() => handleDismiss(notification.id)}
-                        className="opacity-0 group-hover:opacity-100 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all"
+                        className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/5 rounded-lg transition-all duration-200"
                       >
-                        <XMarkIcon className="w-5 h-5 text-gray-400" />
+                        <span className="material-symbols-outlined text-on-surface-variant text-lg">close</span>
                       </button>
                     </div>
                   </div>

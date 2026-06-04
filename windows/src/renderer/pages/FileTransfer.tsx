@@ -1,17 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useConnection } from '../contexts/ConnectionContext';
-import {
-  FolderOpenIcon,
-  ArrowUpTrayIcon,
-  ArrowDownTrayIcon,
-  DocumentIcon,
-  PhotoIcon,
-  FilmIcon,
-  MusicalNoteIcon,
-  ArchiveBoxIcon,
-  XMarkIcon,
-  FolderIcon
-} from '@heroicons/react/24/outline';
 
 interface FileTransfer {
   id: string;
@@ -93,11 +81,11 @@ function FileTransfer() {
     const audioExts = ['mp3', 'wav', 'ogg', 'flac'];
     const archiveExts = ['zip', 'rar', '7z', 'tar', 'gz'];
 
-    if (imageExts.includes(ext || '')) return PhotoIcon;
-    if (videoExts.includes(ext || '')) return FilmIcon;
-    if (audioExts.includes(ext || '')) return MusicalNoteIcon;
-    if (archiveExts.includes(ext || '')) return ArchiveBoxIcon;
-    return DocumentIcon;
+    if (imageExts.includes(ext || '')) return 'image';
+    if (videoExts.includes(ext || '')) return 'movie';
+    if (audioExts.includes(ext || '')) return 'music_note';
+    if (archiveExts.includes(ext || '')) return 'folder_zip';
+    return 'description';
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -108,17 +96,21 @@ function FileTransfer() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">File Transfer</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
-          Send and receive files between your devices
-        </p>
+    <div className="space-y-8 animate-fade-in font-inter">
+      {/* Header */}
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-headline-xl text-on-surface mb-2">File Transfer</h1>
+          <p className="text-body-lg text-on-surface-variant">
+            Secure, peer-to-peer file sharing with end-to-end encryption.
+          </p>
+        </div>
       </div>
 
       {!isConnected ? (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6 text-center">
-          <p className="text-yellow-800 dark:text-yellow-200">
+        <div className="glass-panel p-8 text-center">
+          <span className="material-symbols-outlined text-primary/50 text-5xl mb-4 block">cloud_off</span>
+          <p className="text-body-lg text-on-surface-variant">
             Please connect to a device first to transfer files
           </p>
         </div>
@@ -129,26 +121,30 @@ function FileTransfer() {
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${
+            className={`glass-panel p-12 text-center transition-all duration-300 cursor-pointer ${
               isDragging
-                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                : 'border-gray-300 dark:border-gray-600 hover:border-primary-400'
+                ? 'glass-active border-primary/50'
+                : 'hover:border-white/20'
             }`}
           >
-            <ArrowUpTrayIcon className={`w-12 h-12 mx-auto mb-4 ${
-              isDragging ? 'text-primary-500' : 'text-gray-400'
-            }`} />
-            <p className="text-gray-600 dark:text-gray-300 mb-2">
+            <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center transition-all ${
+              isDragging ? 'bg-primary/20 scale-110' : 'bg-white/5'
+            }`}>
+              <span className={`material-symbols-outlined text-4xl ${
+                isDragging ? 'text-primary' : 'text-on-surface-variant'
+              }`}>cloud_upload</span>
+            </div>
+            <p className="text-body-lg text-on-surface mb-2">
               Drag and drop files here
             </p>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">
+            <p className="text-label-sm text-on-surface-variant mb-4">
               or
             </p>
             <button
               onClick={handleSelectFiles}
-              className="px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors"
+              className="btn-primary px-6 py-2.5 text-label-md inline-flex items-center gap-2"
             >
-              <FolderOpenIcon className="w-5 h-5 inline mr-2" />
+              <span className="material-symbols-outlined text-lg">folder_open</span>
               Browse Files
             </button>
           </div>
@@ -156,77 +152,73 @@ function FileTransfer() {
           {/* Transfers List */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Transfers
-              </h2>
+              <h2 className="text-headline-md text-on-surface">Transfers</h2>
               <button
                 onClick={() => window.api.file.openDownloadFolder?.()}
-                className="text-sm text-primary-500 hover:text-primary-600"
+                className="text-label-md text-primary hover:underline flex items-center gap-1"
               >
-                <FolderIcon className="w-4 h-4 inline mr-1" />
+                <span className="material-symbols-outlined text-lg">folder_open</span>
                 Open Download Folder
               </button>
             </div>
 
             {transfers.length === 0 ? (
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
-                <DocumentIcon className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500 dark:text-gray-400">
+              <div className="glass-panel p-10 text-center">
+                <span className="material-symbols-outlined text-on-surface-variant/30 text-5xl mb-4 block">description</span>
+                <p className="text-body-md text-on-surface-variant">
                   No transfers yet
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
                 {transfers.map(transfer => {
-                  const FileIcon = getFileIcon(transfer.fileName);
-                  
+                  const fileIcon = getFileIcon(transfer.fileName);
+
                   return (
                     <div
                       key={transfer.id}
-                      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm hover:shadow-md transition-shadow"
+                      className="glass-card p-4 hover:translate-y-0"
                     >
                       <div className="flex items-center gap-4">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                           transfer.direction === 'send'
-                            ? 'bg-blue-100 dark:bg-blue-900/30'
-                            : 'bg-green-100 dark:bg-green-900/30'
+                            ? 'bg-primary/10 border border-primary/20'
+                            : 'bg-secondary/10 border border-secondary/20'
                         }`}>
-                          <FileIcon className={`w-6 h-6 ${
-                            transfer.direction === 'send'
-                              ? 'text-blue-500'
-                              : 'text-green-500'
-                          }`} />
+                          <span className={`material-symbols-outlined text-2xl ${
+                            transfer.direction === 'send' ? 'text-primary' : 'text-secondary'
+                          }`}>{fileIcon}</span>
                         </div>
- 
+
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-gray-900 dark:text-white truncate text-base">
+                            <h3 className="text-label-md text-on-surface font-semibold truncate">
                               {transfer.fileName}
                             </h3>
-                            {transfer.direction === 'send' ? (
-                              <ArrowUpTrayIcon className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                            ) : (
-                              <ArrowDownTrayIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
-                            )}
+                            <span className={`material-symbols-outlined text-sm ${
+                              transfer.direction === 'send' ? 'text-primary' : 'text-secondary'
+                            }`}>
+                              {transfer.direction === 'send' ? 'arrow_upward' : 'arrow_downward'}
+                            </span>
                           </div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                          <p className="text-label-sm text-on-surface-variant">
                             {formatFileSize(transfer.fileSize)} • {transfer.direction === 'send' ? 'Sent' : 'Received'}
                           </p>
                         </div>
- 
+
                         <div className="flex items-center gap-3">
                           {transfer.status === 'completed' && (
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => window.api.file.open(transfer.id)}
-                                className="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-medium transition-colors"
+                                className="btn-primary px-4 py-1.5 text-label-sm"
                               >
                                 Open
                               </button>
                               {transfer.direction === 'receive' && (
                                 <button
                                   onClick={() => window.api.file.saveAs(transfer.id)}
-                                  className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors"
+                                  className="btn-secondary px-4 py-1.5 text-label-sm"
                                 >
                                   Save As...
                                 </button>
@@ -234,36 +226,36 @@ function FileTransfer() {
                               <button
                                 onClick={() => window.api.file.showInFolder(transfer.id)}
                                 title="Show in Folder"
-                                className="p-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                className="btn-secondary p-1.5"
                               >
-                                <FolderIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                                <span className="material-symbols-outlined text-lg">folder</span>
                               </button>
                             </div>
                           )}
-                          
+
                           {transfer.status === 'transferring' && (
-                            <span className="text-sm font-bold text-primary-500">
+                            <span className="text-label-md font-bold text-primary">
                               {transfer.progress}%
                             </span>
                           )}
                           {transfer.status === 'failed' && (
-                            <span className="text-sm font-medium text-red-500">
+                            <span className="text-label-md font-medium text-error">
                               Failed
                             </span>
                           )}
                           {transfer.status === 'pending' && (
-                            <span className="text-sm font-medium text-gray-400">
+                            <span className="text-label-md font-medium text-on-surface-variant">
                               Waiting...
                             </span>
                           )}
                         </div>
                       </div>
- 
+
                       {/* Progress bar */}
                       {transfer.status === 'transferring' && (
-                        <div className="mt-4 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className="mt-4 h-1.5 bg-surface-container rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-primary-500 transition-all duration-300 shadow-[0_0_8px_rgba(var(--color-primary-500),0.5)]"
+                            className="h-full bg-gradient-to-r from-secondary to-primary rounded-full shadow-[0_0_8px_#10b981] transition-all duration-300"
                             style={{ width: `${transfer.progress}%` }}
                           />
                         </div>
